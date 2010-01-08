@@ -297,7 +297,7 @@
       $("body").html("\
             <span>WebGL is required, below are instructinons to enable WebGL for Safari and Firefox</span><br/>\
             <a href='http://webkit.org/blog/603/webgl-now-available-in-webkit-nightlies/'>webkit WebGL instructions</a><br/>\
-            <a href='http://learningwebgl.com/blog/?p=11#install-firefox'>webkit WebGL instructions</a>");
+            <a href='http://learningwebgl.com/blog/?p=11#install-firefox'>firefox WebGL instructions</a>");
       throw "no WebGL";
       alert("Could not initialise WebGL, sorry :-(");
     }
@@ -705,7 +705,7 @@
     gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 
 
-    if(drawPen){
+
     	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     	gl.bindTexture(gl.TEXTURE_2D, null);
     	gl.bindBuffer(gl.ARRAY_BUFFER, null);
@@ -721,19 +721,47 @@
                            0.0, 0.0,   1, 0.0, 
                            drawPen.x, -drawPen.y,   0.0, 1.0]);
 */
-
+    if(drawPen){
         matrix = mvTranslate([ drawPen.scale * (drawPen.x -1.0) , drawPen.scale * (-drawPen.y + 1.0), 1.0], [1.0, 0.0, 0.0, 0.0, 
                            0.0, 1.0, 0.0, 0.0, 
                            0.0, 0.0,   1, 0.0, 
                            0.0, 0.0,   0.0, 1.0]);
         matrix[15] = drawPen.scale
+
         setMatrixUniforms(matrix);
         setColorUniforms(penColor);
 
     	gl.drawElements(gl.TRIANGLE_STRIP, penPolygonIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+    }
+    //begin draw oil sprinkler
+        matrix = mvTranslate([ 20.0 , 30.0, 1.0], [1.0, 0.0, 0.0, 0.0, 
+                           0.0, 1.0, 0.0, 0.0, 
+                           0.0, 0.0,   1, 0.0, 
+                           0.0, 0.0,   0.0, 1.0]);
+        matrix[15] = 30.0;
+        setMatrixUniforms(matrix);
+        setColorUniforms([0.5, 0.25, 0.25, 1.0]);
+        gl.drawElements(gl.TRIANGLE_STRIP, penPolygonIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+    //end draw oil sprinkler
+
+
+    //begin draw black sprinkler
+        matrix = mvTranslate([ -20.0 , 30.0, 1.0], [1.0, 0.0, 0.0, 0.0, 
+                           0.0, 1.0, 0.0, 0.0, 
+                           0.0, 0.0,   1, 0.0, 
+                           0.0, 0.0,   0.0, 1.0]);
+        matrix[15] = 30.0;
+        setMatrixUniforms(matrix);
+        setColorUniforms([0.0, 0.0, 0.0, 1.0]);
+        gl.drawElements(gl.TRIANGLE_STRIP, penPolygonIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+    //end draw black sprinkler
+
     	gl.useProgram(shaderProgram);
 
-    }
+
+
+
+
 
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -843,7 +871,6 @@ canvas.mousemove();
     $(".plant").click(function(){ penColor = [0.0, 1.0, 0.0, 1.0]})
     $("#penSizeSlider").slider({orientation: 'vertical', max : 10, min: 1});
 
-
     var width = gup('width');
     var height = gup('height');
     if((!width || !height)){
@@ -851,28 +878,27 @@ canvas.mousemove();
         height = 500;
     }
     
-
     $("body").prepend("<canvas id='canvas' width='" + width + "' height='" + height + "'></canvas>");
     
     canvasWidth = width;
     canvasHeight = height;
-    webGLStart();
+    $("#randomImage").get(0).onload = webGLStart;
+
   
 
   });
 
 
   function createRandomCanvas(width, height){
-    var randomCanvas = document.createElement("canvas");
-    randomCanvas.width = width;
-    randomCanvas.height = height;
-    var ctx = randomCanvas.getContext("2d");
-    var imgData = ctx.getImageData(0,0, ctx.canvas.width, ctx.canvas.height)
 
-    for(i = 0; i < (randomCanvas.width * randomCanvas.height) * 4; ++i){
-        imgData.data[i] = Math.random() * 256;
-    }
-    ctx.putImageData(imgData, 0, 0);
+    var randomImage = document.getElementById("randomImage");
+    var randomCanvas = document.createElement("canvas");
+
+    randomCanvas.width = 200;
+    randomCanvas.height = 200;
+    var ctx = randomCanvas.getContext("2d");
+    ctx.drawImage(randomImage, 0, 0); 
+
     return randomCanvas;
   }
 
@@ -891,8 +917,20 @@ function gup( name )
 
 <style>
   #canvas{float:left; border: 1px solid black;}
-  .colorSelection{height: 52px; border: 2px solid black; position:absolute; bottom: 5px;}
-  .colorSelection div { height: 50px; float: left; border: 1px solid black;  width: 50px; color:white; text-align:center}
+  .colorSelection{height: 58px; border: 2px solid black; position:absolute; bottom: 11px;}
+  .colorSelection div { margin-top:2px; margin-bottom:2px; margin-right:4px; margin-left:4px; height: 50px; float: left; border: 1px solid black;  width: 50px; color:white; text-align:center;
+      border: 2px solid; 
+      border-color: #aaa #000 #000 #aaa; 
+  }
+
+  .colorSelection div:hover { 
+      position: relative; 
+      top: 1px; 
+      left: 1px; 
+      border-color: #000 #aaa #aaa #000; 
+  }
+
+
   .blueWater {background-color:blue;}
   .blackLiquid {background-color:black;}
   .fire {background-color:red;}
@@ -905,7 +943,7 @@ function gup( name )
   #penSizeSlider{height: 100%; margin-left: auto; margin-right:auto;}
   #penSizeSliderBottom{ }
   #penSizeSliderTop{position:relative; margin-left: auto; margin-right:auto; text-align:center;  }
-  #canvasSizeSelect{ font-size: small; position:absolute; bottom: 63px;}
+  #canvasSizeSelect{ font-size: small; position:absolute; bottom: 74px;}
 
   
 </style>
@@ -913,7 +951,7 @@ function gup( name )
 
 
 <body>
-
+  <img id="randomImage" style="display:none;" src="static/randomImage.png" />
   <br/>
   <div id="penSizeSliderContainer">
     <div id="penSizeSliderTop">+</div>
@@ -937,6 +975,9 @@ function gup( name )
       <div class="sandBrown">Oil</div> 
   </div>
 
-<span style="font-size:x-small; position:absolute; bottom:0px; left: 400px"><a href="mailto:aaron.babcock@gmail.com">aaron.babcock@gmail.com</a></span>
+<span style="font-size:x-small; position:absolute; bottom:0px; left: 440px"><a href="mailto:aaron.babcock@gmail.com">aaron.babcock@gmail.com</a></span>
+
+
+
 </body>
 </html>

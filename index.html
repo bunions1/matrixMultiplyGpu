@@ -4,8 +4,8 @@
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 
 <link type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/themes/ui-lightness/jquery-ui.css" rel="stylesheet"/>
-<script type="text/javascript" src="/static/sylvester.js"></script>
-<script type="text/javascript" src="/static/glUtils.js"></script>
+<script type="text/javascript" src="static/sylvester.js"></script>
+<script type="text/javascript" src="static/glUtils.js"></script>
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.js"></script>
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/jquery-ui.js"></script>
 
@@ -34,180 +34,28 @@
   uniform float canvasWidth;
   uniform float canvasHeight;
 
-  bool isLiquid(vec4 color){
-  //    vec4 current = texture2DRect(src, xy);                                                                       //oil(0.50, 0.25, 0.25)
-  return all(equal(color.rgb, vec3(0.0))) || all(equal(color.rgb, vec3(0.0, 0.0, 1.0))) ||
-                           //oil(0.50, 0.25, 0.25)
-    (    all(greaterThan(color.rgb, vec3(0.49, 0.24, 0.24))) && all(lessThan(color.rgb, vec3(0.51, 0.26, 0.26)))   );
-  }
-
-  vec2 getAboveTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(0.0, pixelWidth);
-  }
-  vec2 getBelowTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(0.0, -pixelWidth);
-  }
-  vec2 getLeftTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(-pixelWidth, 0.0);
-  }
-  vec2 getRightTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(pixelWidth, 0.0);
-  }
-
-  vec2 getLowerLeftTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(-pixelWidth, -pixelWidth);
-  }
-
-  vec2 getLowerRightTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(pixelWidth, -pixelWidth);
-  }
-  vec2 getUpperLeftTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(-pixelWidth, pixelWidth);
-  }
-  vec2 getUpperRightTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(pixelWidth, pixelWidth);
-  }
-
-  vec2 getTwoLeft(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2( 2.0 * -pixelWidth, 0.0);
-  }
-
   void main(void)
   {
     float pixelWidth =  1.0 / canvasWidth;
     float pixelHeight =  1.0 / canvasHeight;
-   vec3 bottomSand = vec3(0.5, 0.5, 0.5);
-   vec3 topSand = vec3(0.6, 0.6, 0.6);
-
+    vec3 bottomSand = vec3(0.5, 0.5, 0.5);
+    vec3 topSand = vec3(0.6, 0.6, 0.6);
     vec4 current = texture2D(src, vTextureCoord);
-    vec4 above = texture2D(src, getAboveTexCoord(vTextureCoord, pixelWidth, pixelHeight));
-    vec4 below = texture2D(src, getBelowTexCoord(vTextureCoord, pixelWidth, pixelHeight));
 
-    vec4 twoLeft = texture2D(src, getTwoLeft(vTextureCoord, pixelWidth, pixelHeight));
+    vec4 output = vec4(0.0, 0.0, 0.0, 0.0);
 
-    vec4 left = texture2D(src, getLeftTexCoord(vTextureCoord, pixelWidth, pixelHeight));
-    vec4 right = texture2D(src, getRightTexCoord(vTextureCoord, pixelWidth, pixelHeight));
+//    vec4 above = texture2D(src, getAboveTexCoord(vTextureCoord, pixelWidth, pixelHeight));
 
-    vec4 lowerLeft = texture2D(src, getLowerLeftTexCoord(vTextureCoord, pixelWidth, pixelHeight));
-    vec4 lowerRight = texture2D(src, getLowerRightTexCoord(vTextureCoord, pixelWidth, pixelHeight));
-    vec4 upperLeft = texture2D(src, getUpperLeftTexCoord(vTextureCoord, pixelWidth, pixelHeight));
-    vec4 upperRight = texture2D(src, getUpperRightTexCoord(vTextureCoord, pixelWidth, pixelHeight));
-
-/*
-    vec4 randomVec = vec4(0.2, 0.33, 0.9, 0.87);
-    vec4 randNum = vec4(randomVec.r, 1.0, 1.0, 1.0);
-    vec4 rightRandNum = vec4(randomVec.g, 1.0, 1.0, 1.0);
-    vec4 leftRandNum = vec4(randomVec.b, 1.0, 1.0, 1.0);
-    vec4 belowRandNum = vec4(randomVec[3], 1.0, 1.0, 1.0);
-*/
-
-    vec4 randNum = texture2D(rand, vTextureCoord.st + vec2(randomOffset * pixelWidth, randomOffset * pixelWidth));
-    vec4 rightRandNum = texture2D(rand, vTextureCoord.st + vec2((randomOffset * pixelWidth) + (1.0 * pixelWidth) , randomOffset * pixelWidth));
-    vec4 leftRandNum = texture2D(rand, vTextureCoord.st + vec2((randomOffset * pixelWidth) - (1.0 * pixelWidth), randomOffset * pixelWidth));
-    vec4 belowRandNum = texture2D(rand, vTextureCoord.st + vec2(randomOffset * pixelWidth, (randomOffset * pixelWidth)  - (1.0 * pixelWidth)));
-
-
-
-
-
-    vec3 red = vec3(1.0, 0.0, 0.0);
-
-    int xOdd = int(mod(vTextureCoord.s, 2.0));
-    int yOdd = int(mod(vTextureCoord.t, 2.0));
-
-
-    //red doesn't spread to white or blue
-    if( (all(equal(above.rgb, red)) || all(equal(below.rgb, red)) || all(equal(left.rgb, red)) || all(equal(right.rgb, red))) && (any(notEqual(current.rgb, vec3(1.0))) &&  any(notEqual(current.rgb, vec3(0.0, 0.0, 1.0)))) ){
-        if(all(greaterThan(current.rgb, bottomSand)) && all(lessThan(current.rgb, topSand)) && (xOdd == 0) && (yOdd == 0)){
-            gl_FragColor = current;
-        }
-        else{
-            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-        }
-    }
-    else{
-//begin down movement
-            if(isLiquid(current) && !(isLiquid(below)) &&
-               (belowRandNum.r > 0.2) &&
-               (all(lessThan(below.rgb, bottomSand)) || all(greaterThan(below.rgb, topSand)))
-                    // not sand
-               ){ //black
-     	   	    gl_FragColor = vec4(1.0); //black becoming white
-            }
-	    else if(!isLiquid(current) && ( all(lessThan(current.rgb, bottomSand)) || all(greaterThan(current.rgb, topSand)) ) //notsand
-                    && (randNum.r > 0.2)
-                    && isLiquid(above) ){ //black
-  	   	    gl_FragColor = above; //white becoming black
-	    }
-//end down movement
-            // sideways movement
-//begin right sideways movement
-
-            else if( isLiquid(left) && all(equal(current.rgb, vec3(1.0))) &&
-//               (leftRandNum.r > 0.1) &&
-                 leftRandNum.r > 0.5 && //make sure pixel doesn't go both left and right               
-               !(
-                   isLiquid(above) || 
-                   all(equal(lowerLeft.rgb, vec3(1.0)))
-               )
-
-            ){ 
-                gl_FragColor = left; //white becoming black
-            }
-           else if( all(equal(right.rgb, vec3(1.0))) && isLiquid(current) &&
-//               (randNum.r > 0.1) &&
-                 randNum.r > 0.5 && //make sure pixel doesn't go both left and right
-
-
-               !(
-                  all(equal(below.rgb, vec3(1.0)))  || //current should fall but randomly isn't
-                 //right above not going to fall
-                  isLiquid(upperRight)
-               )
-            ){
-                gl_FragColor = vec4(1.0); //black becoming white
-            }
-//end right sideways movement
-//begin left sideways movement
-            else if( isLiquid(right) && all(equal(current.rgb, vec3(1.0))) &&
-//               (leftRandNum.r > 0.1) &&
-                 rightRandNum.r < 0.5 && //make sure pixel doesn't go both left and right
-                 !isLiquid(left) && //make you don't move left into same pixel as someone moving right
-               !(
-                   isLiquid(above) || 
-                   all(equal(lowerRight.rgb, vec3(1.0)))
-               )
-            ){ 
-                gl_FragColor = right; //white becoming black
-            }
-
-           else if( all(equal(left.rgb, vec3(1.0))) && isLiquid(current) &&
-//               (randNum.r > 0.1) &&
-                 randNum.r < 0.5 && //make sure pixel doesn't go both left and right
-                 !isLiquid(twoLeft) && //make you don't move left into same pixel as someone moving right                 
-               !(
-                  all(equal(below.rgb, vec3(1.0)))|| //current should fall but randomly isn't
-                 //right above not going to fall
-                  isLiquid(upperLeft)
-               )
-            ){
-                gl_FragColor = vec4(1.0); //black becoming white
-            }
-//end left sideways movement
-            else{
-                gl_FragColor = current;
-            }
+    for(int i = 0; i < int(canvasWidth); ++i){
+        output.xyzw += texture2D(src, vec2(vTextureCoord.s +  (i * pixelWidth), vTextureCoord.t) *
+		       texture2D(rand, vec2(vTextureCoord.s + (i * pixelWidth), vTextureCoord.t) *
+		       ; 
     }
 
-    //turn red back to white randomly
-    if(all(equal(current.rgb, red)) && randNum.r < 0.10){
-        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    }
+    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+  }
 
 
-
-//    gl_FragColor = upperLeft;
-}
 </script>
 
 <script id="shader-vs" type="x-shader/x-vertex">
