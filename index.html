@@ -42,17 +42,15 @@
     vec3 topSand = vec3(0.6, 0.6, 0.6);
     vec4 current = texture2D(src, vTextureCoord);
 
-    vec4 output = vec4(0.0, 0.0, 0.0, 0.0);
-
+    vec4 outputVec = vec4(0.0, 0.0, 0.0, 0.0);
 //    vec4 above = texture2D(src, getAboveTexCoord(vTextureCoord, pixelWidth, pixelHeight));
 
-    for(int i = 0; i < int(canvasWidth); ++i){
-        output.xyzw += texture2D(src, vec2(vTextureCoord.s +  (i * pixelWidth), vTextureCoord.t) *
-		       texture2D(rand, vec2(vTextureCoord.s + (i * pixelWidth), vTextureCoord.t) *
-		       ; 
+    for(float i = 0.0; i < float(canvasWidth); ++i){
+        outputVec.xyzw += texture2D(src, vec2(vTextureCoord.s +  (i * pixelWidth), vTextureCoord.t)) * 
+		       texture2D(rand, vec2(vTextureCoord.t + (i * pixelWidth), vTextureCoord.s)); 
     }
 
-    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = normalize(outputVec);
   }
 
 
@@ -606,15 +604,7 @@
 
     	gl.useProgram(shaderProgram);
 
-
-
-
-
-
-
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-
 //    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
@@ -625,9 +615,9 @@
 
     gl.activeTexture(gl.TEXTURE0);
     if(everyOther == true)
-      gl.bindTexture(gl.TEXTURE_2D, neheTexture2);
+      gl.bindTexture(gl.TEXTURE_2D, randomTexture);
     else
-      gl.bindTexture(gl.TEXTURE_2D, neheTexture);
+      gl.bindTexture(gl.TEXTURE_2D, randomTexture);
     gl.uniform1i(gl.getUniformLocation(shaderProgram, "src"), 0);
     setRandomUniforms(random, randomTexture);
 
@@ -658,7 +648,7 @@
 
 
 
-
+  var pixels = null;
   var penColor = [1.0, 1.0, 1.0, 1.0];
   function webGLStart()
   {
@@ -682,13 +672,20 @@
   var randomTexture = gl.createTexture();
   handleLoadedTexture(randomCanvas, randomTexture)
   var drawPen = null;
-  function tick()
-  {
+  function tick(){
      drawScene(drawPen, penColor, randomTexture);
-     setTimeout(tick, 0);
+     gl.bindFramebuffer( gl.FRAMEBUFFER, globalFbo);
+     pixels = gl.readPixels(0, 0, 10, 1, gl.RGBA, gl.UNSIGNED_BYTE);
+     gl.bindFramebuffer( gl.FRAMEBUFFER, null);
+     if(confirm(pixels.data))
+         setTimeout(tick, 0);  
   }
+  setTimeout(tick, 0);  
+  
 
-  setTimeout(tick, 0);
+
+
+
   canvas = $("#canvas");
   canvas.mousedown(function(e){ 
       canvas.mousemove(function(e){
