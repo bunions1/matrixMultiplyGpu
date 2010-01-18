@@ -10,6 +10,7 @@
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/jquery-ui.js"></script>
 
 <script id="simple-vs" type="x-shader/x-vertex">
+
   uniform mat4 uMVMatrix; 
   attribute vec4 aPosition;
   uniform vec4 color; 
@@ -42,15 +43,24 @@
     vec3 topSand = vec3(0.6, 0.6, 0.6);
     vec4 current = texture2D(src, vTextureCoord);
 
-    vec4 outputVec = vec4(0.0, 0.0, 0.0, 0.0);
+    vec3 outputVec = vec3(0.0, 0.0, 0.0);
 //    vec4 above = texture2D(src, getAboveTexCoord(vTextureCoord, pixelWidth, pixelHeight));
 
-    for(float i = 0.0; i < float(canvasWidth); ++i){
-        outputVec.xyzw += texture2D(src, vec2(vTextureCoord.s +  (i * pixelWidth), vTextureCoord.t)) * 
-		       texture2D(rand, vec2(vTextureCoord.t + (i * pixelWidth), vTextureCoord.s)); 
+    for(float i = 0.0; i < float(1.0); ++i){
+        outputVec.xyz += (texture2D(src, vec2(vTextureCoord.s +  (i * pixelWidth), vTextureCoord.t)).xyz * vec3(255.0, 255.0, 255.0)) / vec3(255.0, 255.0, 255.0); 
+/*
+* 
+		       texture2D(rand, vec2(vTextureCoord.t + (i * pixelWidth), vTextureCoord.s)).xyz ; 
+*/
     }
 
-    gl_FragColor = normalize(outputVec);
+
+    gl_FragColor = vec4(outputVec, 1.0);
+/* 
+
+*/
+
+
   }
 
 
@@ -288,8 +298,16 @@
     neheImage.width = canvasWidth;
     neheImage.height = canvasHeight;
     var ctx = neheImage.getContext("2d")
-    ctx.fillStyle = "rgb(256,256,256)";
-    ctx.fillRect (0, 0, neheImage.width, neheImage.height);
+
+    var imgData = ctx.getImageData(0,0, ctx.canvas.width, ctx.canvas.height)
+    for(i = 0; i < imgData.data.length; i+=4){
+        imgData.data[i + 0] = 4;
+        imgData.data[i + 1] = 4; 
+        imgData.data[i + 2] = 4;
+        imgData.data[i + 3] = 255;
+    }
+    ctx.putImageData(imgData, 0, 0);
+
 
 //    neheImage.onload = function()
 //    {
@@ -304,8 +322,17 @@
     neheImage2.height = canvasHeight;
 
     var ctx2 = neheImage2.getContext("2d")
-    ctx2.fillStyle = "rgb(256,256,256)";
-    ctx2.fillRect (0, 0, neheImage2.width, neheImage2.height);
+    var imgData = ctx2.getImageData(0,0, ctx2.canvas.width, ctx2.canvas.height)
+    for(i = 0; i < imgData.data.length; i+=4){
+        imgData.data[i + 0] = 4;
+        imgData.data[i + 1] = 4; 
+        imgData.data[i + 2] = 4;
+        imgData.data[i + 3] = 255;
+    }
+    ctx2.putImageData(imgData, 0, 0);
+
+
+
 //    neheImage2.onload = function()
 //    {
       handleLoadedTexture(neheImage2, neheTexture2, true)
@@ -541,11 +568,13 @@
       gl.bindTexture(gl.TEXTURE_2D, neheTexture2);
     else
       gl.bindTexture(gl.TEXTURE_2D, neheTexture);
+
     gl.uniform1i(gl.getUniformLocation(shaderProgram, "src"), 0);
+    setRandomUniforms(random, randomTexture)
     gl.uniform1f(gl.getUniformLocation(shaderProgram, "canvasWidth"), canvasWidth);
     gl.uniform1f(gl.getUniformLocation(shaderProgram, "canvasHeight"), canvasHeight);
 
-    setRandomUniforms(random, randomTexture)
+ 
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
     gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
@@ -567,6 +596,8 @@
                            0.0, 0.0,   1, 0.0, 
                            drawPen.x, -drawPen.y,   0.0, 1.0]);
 */
+
+/*
     if(drawPen){
         matrix = mvTranslate([ drawPen.scale * (drawPen.x -1.0) , drawPen.scale * (-drawPen.y + 1.0), 1.0], [1.0, 0.0, 0.0, 0.0, 
                            0.0, 1.0, 0.0, 0.0, 
@@ -579,6 +610,7 @@
 
     	gl.drawElements(gl.TRIANGLE_STRIP, penPolygonIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
     }
+
     //begin draw oil sprinkler
         matrix = mvTranslate([ 20.0 , 30.0, 1.0], [1.0, 0.0, 0.0, 0.0, 
                            0.0, 1.0, 0.0, 0.0, 
@@ -601,7 +633,7 @@
         setColorUniforms([0.0, 0.0, 0.0, 1.0]);
         gl.drawElements(gl.TRIANGLE_STRIP, penPolygonIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
     //end draw black sprinkler
-
+*/
     	gl.useProgram(shaderProgram);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -615,11 +647,14 @@
 
     gl.activeTexture(gl.TEXTURE0);
     if(everyOther == true)
-      gl.bindTexture(gl.TEXTURE_2D, randomTexture);
+      gl.bindTexture(gl.TEXTURE_2D, neheTexture2);
     else
-      gl.bindTexture(gl.TEXTURE_2D, randomTexture);
+      gl.bindTexture(gl.TEXTURE_2D, neheTexture);
+
     gl.uniform1i(gl.getUniformLocation(shaderProgram, "src"), 0);
     setRandomUniforms(random, randomTexture);
+    gl.uniform1f(gl.getUniformLocation(shaderProgram, "canvasWidth"), canvasWidth);
+    gl.uniform1f(gl.getUniformLocation(shaderProgram, "canvasHeight"), canvasHeight);
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
     gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
@@ -675,9 +710,9 @@
   function tick(){
      drawScene(drawPen, penColor, randomTexture);
      gl.bindFramebuffer( gl.FRAMEBUFFER, globalFbo);
-     pixels = gl.readPixels(0, 0, 10, 1, gl.RGBA, gl.UNSIGNED_BYTE);
+     pixels = gl.readPixels(0, 0, canvasWidth, canvasHeight, gl.RGBA, gl.UNSIGNED_BYTE);
      gl.bindFramebuffer( gl.FRAMEBUFFER, null);
-     if(confirm(pixels.data))
+     if(confirm("continue"))
          setTimeout(tick, 0);  
   }
   setTimeout(tick, 0);  
@@ -689,8 +724,6 @@
   canvas = $("#canvas");
   canvas.mousedown(function(e){ 
       canvas.mousemove(function(e){
-
-  
           drawPen = { scale: 0.2 * Math.pow(($("#penSizeSlider").slider('option', 'max') + 1) - $("#penSizeSlider").slider('option', 'value') ,2 ) + 1.0};
 //          drawPen = { scale: 100.0};
           drawPen.x = (e.pageX - canvas.offset().left) / (canvas.width() /2);
@@ -742,8 +775,17 @@ canvas.mousemove();
     randomCanvas.width = 200;
     randomCanvas.height = 200;
     var ctx = randomCanvas.getContext("2d");
-    ctx.drawImage(randomImage, 0, 0); 
 
+    var imgData = ctx.getImageData(0,0, ctx.canvas.width, ctx.canvas.height)
+    for(i = 0; i < imgData.data.length; i+=4){
+        imgData.data[i + 0] = 4;
+        imgData.data[i + 1] = 4; 
+        imgData.data[i + 2] = 4;
+        imgData.data[i + 3] = 255;
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+$("body").append(randomCanvas);
     return randomCanvas;
   }
 
