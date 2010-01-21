@@ -35,6 +35,20 @@
   uniform float canvasWidth;
   uniform float canvasHeight;
 
+  float unPackValue(in vec3 bytes){
+       bytes = bytes * vec3(255.0, 255.0, 255.0);
+       return (bytes.x * 65536.0)  + (bytes.y * 255.0) + bytes.z;
+  }
+
+  vec3 packValue(in float value){
+       return (vec3(  value / 65535.0, 
+                      mod(value, 65535.0)  / 256.0, 
+                      mod(mod(value, 65536.0), 256.0) 
+       ) / 
+       vec3(255.0, 255.0, 255.0));
+
+  }
+
   void main(void)
   {
     float pixelWidth =  1.0 / canvasWidth;
@@ -46,21 +60,19 @@
     vec3 outputVec = vec3(0.0, 0.0, 0.0);
 //    vec4 above = texture2D(src, getAboveTexCoord(vTextureCoord, pixelWidth, pixelHeight));
 
+
+    float resultValue = 0.0;
     for(float i = 0.0; i < float(1.0); ++i){
-        outputVec.xyz += (texture2D(src, vec2(vTextureCoord.s +  (i * pixelWidth), vTextureCoord.t)).xyz * vec3(255.0, 255.0, 255.0)) / vec3(255.0, 255.0, 255.0); 
-/*
-* 
-		       texture2D(rand, vec2(vTextureCoord.t + (i * pixelWidth), vTextureCoord.s)).xyz ; 
-*/
+    	float valueOne = 0.0; 
+    	valueOne = unPackValue(texture2D(src, vec2(vTextureCoord.s +  (i * pixelWidth), vTextureCoord.t)).xyz);
+    	float valueTwo = 0.0;
+    	valueTwo = unPackValue(texture2D(rand, vec2(vTextureCoord.t + (i * pixelWidth), vTextureCoord.s)).xyz);
+
+	resultValue += valueOne * valueTwo;		   
+   
     }
-
-
-    gl_FragColor = vec4(outputVec, 1.0);
-/* 
-
-*/
-
-
+    outputVec.xyz = packValue(resultValue);
+    gl_FragColor = vec4(outputVec,  1.0);
   }
 
 
