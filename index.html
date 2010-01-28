@@ -76,22 +76,16 @@
     vec3 outputVec = vec3(0.0, 0.0, 0.0);
 //    vec4 above = texture2D(src, getAboveTexCoord(vTextureCoord, pixelWidth, pixelHeight));
 
-    float resultValue = 0.0;
+  float resultValue = 0.0;
     for(float i = 0.0; i < float(canvasWidth); ++i){
     	float valueOne = 0.0; 
-    	valueOne = unPackValue(texture2D(src, vec2(vTextureCoord.s +  (i * pixelWidth), vTextureCoord.t)).xyz);
+    	valueOne = unPackValue(texture2D(src, vec2( (i * pixelWidth), vTextureCoord.t)).xyz);
     	float valueTwo = 0.0;
-    	valueTwo = unPackValue(texture2D(rand, vec2(vTextureCoord.t + (i * pixelWidth), vTextureCoord.s)).xyz);
-
-	resultValue += valueOne * valueTwo;		   
+    	valueTwo = unPackValue(texture2D(rand, vec2(vTextureCoord.s, (i * pixelHeight))).xyz);
+	resultValue += valueOne *  valueTwo;		   
     }
     outputVec.xyz = packValue(resultValue);
     gl_FragColor = vec4(outputVec,  1.0);
-
-
-
-
-
 
 
   }
@@ -356,11 +350,16 @@
 
     var ctx2 = neheImage2.getContext("2d")
     var imgData = ctx2.getImageData(0,0, ctx2.canvas.width, ctx2.canvas.height)
-    for(i = 0; i < imgData.data.length; i+=4){
-        imgData.data[i + 0] = 0;
-        imgData.data[i + 1] = 0; 
-        imgData.data[i + 2] = 4;
-        imgData.data[i + 3] = 255;
+    for(var i = 0; i < ctx.canvas.height; ++i){
+	var offset = i * ctx.canvas.width * 4;
+	var widthCounter = 0;
+    	for(var k = 0; k < ctx.canvas.width * 4; k+=4){
+	    if(widthCounter % 2 == 0)
+    	        {imgData.data[offset + k + 0] = 0; imgData.data[offset + k + 1] = 0;  imgData.data[offset + k + 2] = 1; imgData.data[offset + k + 3] = 255;}
+	    if(widthCounter % 2 == 1)
+    	        {imgData.data[offset + k + 0] = 0; imgData.data[offset + k + 1] = 0;  imgData.data[offset + k + 2] = 2; imgData.data[offset + k + 3] = 255;}
+	    ++widthCounter;
+    	}
     }
     ctx2.putImageData(imgData, 0, 0);
 
@@ -807,20 +806,23 @@ canvas.mousemove();
     var randomImage = document.getElementById("randomImage");
     var randomCanvas = document.createElement("canvas");
 
-    randomCanvas.width = 200;
-    randomCanvas.height = 200;
+    randomCanvas.width = canvasWidth;
+    randomCanvas.height = canvasHeight;
     var ctx = randomCanvas.getContext("2d");
 
     var imgData = ctx.getImageData(0,0, ctx.canvas.width, ctx.canvas.height)
     for(var i = 0; i < ctx.canvas.height; ++i){
-	var offset = i * ctx.canvas.width;
-    	for(var k = 0; k < ctx.canvas.width ; ++k){
-    	    imgData.data[offset + k + 0] = 0;
-    	    imgData.data[offset + k + 1] = 0; 
-    	    imgData.data[offset + k + 2] = 4;
-    	    imgData.data[offset + k + 3] = 255;
+	var offset = i * ctx.canvas.width * 4;
+	var widthCounter = 0;
+    	for(var k = 0; k < ctx.canvas.width * 4; k+=4){
+	    if(widthCounter % 2 == 0)
+    	        {imgData.data[offset + k + 0] = 0; imgData.data[offset + k + 1] = 0;  imgData.data[offset + k + 2] = 1; imgData.data[offset + k + 3] = 255;}
+	    if(widthCounter % 2 == 1)
+    	        {imgData.data[offset + k + 0] = 0; imgData.data[offset + k + 1] = 0;  imgData.data[offset + k + 2] = 2; imgData.data[offset + k + 3] = 255;}
+	    ++widthCounter;
     	}
     }
+
 
     ctx.putImageData(imgData, 0, 0);
 
