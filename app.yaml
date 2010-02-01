@@ -8,6 +8,10 @@ handlers:
   static_files: index.html
   upload: index.html
 
+- url: /matrixMult\.html
+  static_files: matrixMult.html
+  upload: matrixMult.html
+
 - url: /static
   static_dir: static
 

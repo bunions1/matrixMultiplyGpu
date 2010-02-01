@@ -1,8 +1,13 @@
-application: fallingsand
+application: fallingsandgpgpu
 version: 1
 runtime: python
 api_version: 1
 
 handlers:
-- url: .*
-  statid_dir: main.py
+- url: /index\.html
+  static_files: index.html
+  upload: index.html
+
+- url: /static
+  static_dir: static
+
