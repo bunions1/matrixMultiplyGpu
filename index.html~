@@ -4,12 +4,13 @@
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 
 <link type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/themes/ui-lightness/jquery-ui.css" rel="stylesheet"/>
-<script type="text/javascript" src="/static/sylvester.js"></script>
-<script type="text/javascript" src="/static/glUtils.js"></script>
+<script type="text/javascript" src="static/sylvester.js"></script>
+<script type="text/javascript" src="static/glUtils.js"></script>
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.js"></script>
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/jquery-ui.js"></script>
 
 <script id="simple-vs" type="x-shader/x-vertex">
+
   uniform mat4 uMVMatrix; 
   attribute vec4 aPosition;
   uniform vec4 color; 
@@ -34,180 +35,62 @@
   uniform float canvasWidth;
   uniform float canvasHeight;
 
-  bool isLiquid(vec4 color){
-  //    vec4 current = texture2DRect(src, xy);                                                                       //oil(0.50, 0.25, 0.25)
-  return all(equal(color.rgb, vec3(0.0))) || all(equal(color.rgb, vec3(0.0, 0.0, 1.0))) ||
-                           //oil(0.50, 0.25, 0.25)
-    (    all(greaterThan(color.rgb, vec3(0.49, 0.24, 0.24))) && all(lessThan(color.rgb, vec3(0.51, 0.26, 0.26)))   );
+  float unPackValue(in vec3 bytes){
+       bytes = bytes * vec3(255.0, 255.0, 255.0);
+       return (bytes.x * 65536.0)  + (bytes.y * 256.0) + bytes.z;
   }
 
-  vec2 getAboveTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(0.0, pixelWidth);
-  }
-  vec2 getBelowTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(0.0, -pixelWidth);
-  }
-  vec2 getLeftTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(-pixelWidth, 0.0);
-  }
-  vec2 getRightTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(pixelWidth, 0.0);
-  }
+  vec3 packValue(in float value){
 
-  vec2 getLowerLeftTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(-pixelWidth, -pixelWidth);
-  }
+      vec3 ret = vec3(0.0, 0.3, 0.0);
 
-  vec2 getLowerRightTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(pixelWidth, -pixelWidth);
-  }
-  vec2 getUpperLeftTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(-pixelWidth, pixelWidth);
-  }
-  vec2 getUpperRightTexCoord(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2(pixelWidth, pixelWidth);
-  }
+      int totalBytes = 3;
+      float radixMax = 0.0;
+      int place = 0;
+      for(int i = totalBytes; i > 0; --i){
+	radixMax = pow(256.0, float(i - 1));
+        place = (totalBytes - i);
+	if(value >= radixMax){
+          ret[place] = floor(value / radixMax);
+          value = mod(value, radixMax);
+	}
+      }
 
-  vec2 getTwoLeft(in vec2 texCoord, in float pixelWidth, in float pixelHeight){
-    return texCoord + vec2( 2.0 * -pixelWidth, 0.0);
+
+     return (ret   / vec3(255.0, 255.0, 255.0));
+
+  return ret;
+// / 
+//  
+//             mod(value, 65535.0)  / 256.0, 
   }
 
   void main(void)
   {
     float pixelWidth =  1.0 / canvasWidth;
     float pixelHeight =  1.0 / canvasHeight;
-   vec3 bottomSand = vec3(0.5, 0.5, 0.5);
-   vec3 topSand = vec3(0.6, 0.6, 0.6);
-
+    vec3 bottomSand = vec3(0.5, 0.5, 0.5);
+    vec3 topSand = vec3(0.6, 0.6, 0.6);
     vec4 current = texture2D(src, vTextureCoord);
-    vec4 above = texture2D(src, getAboveTexCoord(vTextureCoord, pixelWidth, pixelHeight));
-    vec4 below = texture2D(src, getBelowTexCoord(vTextureCoord, pixelWidth, pixelHeight));
 
-    vec4 twoLeft = texture2D(src, getTwoLeft(vTextureCoord, pixelWidth, pixelHeight));
+    vec3 outputVec = vec3(0.0, 0.0, 0.0);
+//    vec4 above = texture2D(src, getAboveTexCoord(vTextureCoord, pixelWidth, pixelHeight));
 
-    vec4 left = texture2D(src, getLeftTexCoord(vTextureCoord, pixelWidth, pixelHeight));
-    vec4 right = texture2D(src, getRightTexCoord(vTextureCoord, pixelWidth, pixelHeight));
-
-    vec4 lowerLeft = texture2D(src, getLowerLeftTexCoord(vTextureCoord, pixelWidth, pixelHeight));
-    vec4 lowerRight = texture2D(src, getLowerRightTexCoord(vTextureCoord, pixelWidth, pixelHeight));
-    vec4 upperLeft = texture2D(src, getUpperLeftTexCoord(vTextureCoord, pixelWidth, pixelHeight));
-    vec4 upperRight = texture2D(src, getUpperRightTexCoord(vTextureCoord, pixelWidth, pixelHeight));
-
-/*
-    vec4 randomVec = vec4(0.2, 0.33, 0.9, 0.87);
-    vec4 randNum = vec4(randomVec.r, 1.0, 1.0, 1.0);
-    vec4 rightRandNum = vec4(randomVec.g, 1.0, 1.0, 1.0);
-    vec4 leftRandNum = vec4(randomVec.b, 1.0, 1.0, 1.0);
-    vec4 belowRandNum = vec4(randomVec[3], 1.0, 1.0, 1.0);
-*/
-
-    vec4 randNum = texture2D(rand, vTextureCoord.st + vec2(randomOffset * pixelWidth, randomOffset * pixelWidth));
-    vec4 rightRandNum = texture2D(rand, vTextureCoord.st + vec2((randomOffset * pixelWidth) + (1.0 * pixelWidth) , randomOffset * pixelWidth));
-    vec4 leftRandNum = texture2D(rand, vTextureCoord.st + vec2((randomOffset * pixelWidth) - (1.0 * pixelWidth), randomOffset * pixelWidth));
-    vec4 belowRandNum = texture2D(rand, vTextureCoord.st + vec2(randomOffset * pixelWidth, (randomOffset * pixelWidth)  - (1.0 * pixelWidth)));
-
-
-
-
-
-    vec3 red = vec3(1.0, 0.0, 0.0);
-
-    int xOdd = int(mod(vTextureCoord.s, 2.0));
-    int yOdd = int(mod(vTextureCoord.t, 2.0));
-
-
-    //red doesn't spread to white or blue
-    if( (all(equal(above.rgb, red)) || all(equal(below.rgb, red)) || all(equal(left.rgb, red)) || all(equal(right.rgb, red))) && (any(notEqual(current.rgb, vec3(1.0))) &&  any(notEqual(current.rgb, vec3(0.0, 0.0, 1.0)))) ){
-        if(all(greaterThan(current.rgb, bottomSand)) && all(lessThan(current.rgb, topSand)) && (xOdd == 0) && (yOdd == 0)){
-            gl_FragColor = current;
-        }
-        else{
-            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-        }
+  float resultValue = 0.0;
+    for(float i = 0.0; i < float(canvasWidth); ++i){
+    	float valueOne = 0.0; 
+    	valueOne = unPackValue(texture2D(src, vec2( (i * pixelWidth), vTextureCoord.t)).xyz);
+    	float valueTwo = 0.0;
+    	valueTwo = unPackValue(texture2D(rand, vec2(vTextureCoord.s, (i * pixelHeight))).xyz);
+	resultValue += valueOne *  valueTwo;		   
     }
-    else{
-//begin down movement
-            if(isLiquid(current) && !(isLiquid(below)) &&
-               (belowRandNum.r > 0.2) &&
-               (all(lessThan(below.rgb, bottomSand)) || all(greaterThan(below.rgb, topSand)))
-                    // not sand
-               ){ //black
-     	   	    gl_FragColor = vec4(1.0); //black becoming white
-            }
-	    else if(!isLiquid(current) && ( all(lessThan(current.rgb, bottomSand)) || all(greaterThan(current.rgb, topSand)) ) //notsand
-                    && (randNum.r > 0.2)
-                    && isLiquid(above) ){ //black
-  	   	    gl_FragColor = above; //white becoming black
-	    }
-//end down movement
-            // sideways movement
-//begin right sideways movement
-
-            else if( isLiquid(left) && all(equal(current.rgb, vec3(1.0))) &&
-//               (leftRandNum.r > 0.1) &&
-                 leftRandNum.r > 0.5 && //make sure pixel doesn't go both left and right               
-               !(
-                   isLiquid(above) || 
-                   all(equal(lowerLeft.rgb, vec3(1.0)))
-               )
-
-            ){ 
-                gl_FragColor = left; //white becoming black
-            }
-           else if( all(equal(right.rgb, vec3(1.0))) && isLiquid(current) &&
-//               (randNum.r > 0.1) &&
-                 randNum.r > 0.5 && //make sure pixel doesn't go both left and right
+    outputVec.xyz = packValue(resultValue);
+    gl_FragColor = vec4(outputVec,  1.0);
 
 
-               !(
-                  all(equal(below.rgb, vec3(1.0)))  || //current should fall but randomly isn't
-                 //right above not going to fall
-                  isLiquid(upperRight)
-               )
-            ){
-                gl_FragColor = vec4(1.0); //black becoming white
-            }
-//end right sideways movement
-//begin left sideways movement
-            else if( isLiquid(right) && all(equal(current.rgb, vec3(1.0))) &&
-//               (leftRandNum.r > 0.1) &&
-                 rightRandNum.r < 0.5 && //make sure pixel doesn't go both left and right
-                 !isLiquid(left) && //make you don't move left into same pixel as someone moving right
-               !(
-                   isLiquid(above) || 
-                   all(equal(lowerRight.rgb, vec3(1.0)))
-               )
-            ){ 
-                gl_FragColor = right; //white becoming black
-            }
-
-           else if( all(equal(left.rgb, vec3(1.0))) && isLiquid(current) &&
-//               (randNum.r > 0.1) &&
-                 randNum.r < 0.5 && //make sure pixel doesn't go both left and right
-                 !isLiquid(twoLeft) && //make you don't move left into same pixel as someone moving right                 
-               !(
-                  all(equal(below.rgb, vec3(1.0)))|| //current should fall but randomly isn't
-                 //right above not going to fall
-                  isLiquid(upperLeft)
-               )
-            ){
-                gl_FragColor = vec4(1.0); //black becoming white
-            }
-//end left sideways movement
-            else{
-                gl_FragColor = current;
-            }
-    }
-
-    //turn red back to white randomly
-    if(all(equal(current.rgb, red)) && randNum.r < 0.10){
-        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    }
+  }
 
 
-
-//    gl_FragColor = upperLeft;
-}
 </script>
 
 <script id="shader-vs" type="x-shader/x-vertex">
@@ -442,8 +325,16 @@
     neheImage.width = canvasWidth;
     neheImage.height = canvasHeight;
     var ctx = neheImage.getContext("2d")
-    ctx.fillStyle = "rgb(256,256,256)";
-    ctx.fillRect (0, 0, neheImage.width, neheImage.height);
+
+    var imgData = ctx.getImageData(0,0, ctx.canvas.width, ctx.canvas.height)
+    for(i = 0; i < imgData.data.length; i+=4){
+        imgData.data[i + 0] = 0;
+        imgData.data[i + 1] = 0; 
+        imgData.data[i + 2] = 8;
+        imgData.data[i + 3] = 255;
+    }
+    ctx.putImageData(imgData, 0, 0);
+
 
 //    neheImage.onload = function()
 //    {
@@ -458,8 +349,22 @@
     neheImage2.height = canvasHeight;
 
     var ctx2 = neheImage2.getContext("2d")
-    ctx2.fillStyle = "rgb(256,256,256)";
-    ctx2.fillRect (0, 0, neheImage2.width, neheImage2.height);
+    var imgData = ctx2.getImageData(0,0, ctx2.canvas.width, ctx2.canvas.height)
+    for(var i = 0; i < ctx.canvas.height; ++i){
+	var offset = i * ctx.canvas.width * 4;
+	var widthCounter = 0;
+    	for(var k = 0; k < ctx.canvas.width * 4; k+=4){
+	    if(widthCounter % 2 == 0)
+    	        {imgData.data[offset + k + 0] = 0; imgData.data[offset + k + 1] = 0;  imgData.data[offset + k + 2] = 1; imgData.data[offset + k + 3] = 255;}
+	    if(widthCounter % 2 == 1)
+    	        {imgData.data[offset + k + 0] = 0; imgData.data[offset + k + 1] = 0;  imgData.data[offset + k + 2] = 2; imgData.data[offset + k + 3] = 255;}
+	    ++widthCounter;
+    	}
+    }
+    ctx2.putImageData(imgData, 0, 0);
+
+
+
 //    neheImage2.onload = function()
 //    {
       handleLoadedTexture(neheImage2, neheTexture2, true)
@@ -695,11 +600,13 @@
       gl.bindTexture(gl.TEXTURE_2D, neheTexture2);
     else
       gl.bindTexture(gl.TEXTURE_2D, neheTexture);
+
     gl.uniform1i(gl.getUniformLocation(shaderProgram, "src"), 0);
+    setRandomUniforms(random, randomTexture)
     gl.uniform1f(gl.getUniformLocation(shaderProgram, "canvasWidth"), canvasWidth);
     gl.uniform1f(gl.getUniformLocation(shaderProgram, "canvasHeight"), canvasHeight);
 
-    setRandomUniforms(random, randomTexture)
+ 
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
     gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
@@ -721,6 +628,8 @@
                            0.0, 0.0,   1, 0.0, 
                            drawPen.x, -drawPen.y,   0.0, 1.0]);
 */
+
+/*
     if(drawPen){
         matrix = mvTranslate([ drawPen.scale * (drawPen.x -1.0) , drawPen.scale * (-drawPen.y + 1.0), 1.0], [1.0, 0.0, 0.0, 0.0, 
                            0.0, 1.0, 0.0, 0.0, 
@@ -733,6 +642,7 @@
 
     	gl.drawElements(gl.TRIANGLE_STRIP, penPolygonIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
     }
+
     //begin draw oil sprinkler
         matrix = mvTranslate([ 20.0 , 30.0, 1.0], [1.0, 0.0, 0.0, 0.0, 
                            0.0, 1.0, 0.0, 0.0, 
@@ -755,18 +665,10 @@
         setColorUniforms([0.0, 0.0, 0.0, 1.0]);
         gl.drawElements(gl.TRIANGLE_STRIP, penPolygonIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
     //end draw black sprinkler
-
+*/
     	gl.useProgram(shaderProgram);
 
-
-
-
-
-
-
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-
 //    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
@@ -780,8 +682,11 @@
       gl.bindTexture(gl.TEXTURE_2D, neheTexture2);
     else
       gl.bindTexture(gl.TEXTURE_2D, neheTexture);
+
     gl.uniform1i(gl.getUniformLocation(shaderProgram, "src"), 0);
     setRandomUniforms(random, randomTexture);
+    gl.uniform1f(gl.getUniformLocation(shaderProgram, "canvasWidth"), canvasWidth);
+    gl.uniform1f(gl.getUniformLocation(shaderProgram, "canvasHeight"), canvasHeight);
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
     gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
@@ -810,7 +715,7 @@
 
 
 
-
+  var pixels = null;
   var penColor = [1.0, 1.0, 1.0, 1.0];
   function webGLStart()
   {
@@ -834,18 +739,25 @@
   var randomTexture = gl.createTexture();
   handleLoadedTexture(randomCanvas, randomTexture)
   var drawPen = null;
-  function tick()
-  {
+  function tick(){
      drawScene(drawPen, penColor, randomTexture);
-     setTimeout(tick, 0);
-  }
+     gl.bindFramebuffer( gl.FRAMEBUFFER, globalFbo);
+     pixels = gl.readPixels(0, 0, canvasWidth, canvasHeight, gl.RGBA, gl.UNSIGNED_BYTE);
+     gl.bindFramebuffer( gl.FRAMEBUFFER, null);
 
-  setTimeout(tick, 0);
+     alert(pixels[0] + ":" + pixels[1] + ":" + pixels[2] + ":" + pixels[3] );
+     if(confirm("continue"))
+         setTimeout(tick, 0);  
+  }
+  setTimeout(tick, 0);  
+  
+
+
+
+
   canvas = $("#canvas");
   canvas.mousedown(function(e){ 
       canvas.mousemove(function(e){
-
-  
           drawPen = { scale: 0.2 * Math.pow(($("#penSizeSlider").slider('option', 'max') + 1) - $("#penSizeSlider").slider('option', 'value') ,2 ) + 1.0};
 //          drawPen = { scale: 100.0};
           drawPen.x = (e.pageX - canvas.offset().left) / (canvas.width() /2);
@@ -894,11 +806,27 @@ canvas.mousemove();
     var randomImage = document.getElementById("randomImage");
     var randomCanvas = document.createElement("canvas");
 
-    randomCanvas.width = 200;
-    randomCanvas.height = 200;
+    randomCanvas.width = canvasWidth;
+    randomCanvas.height = canvasHeight;
     var ctx = randomCanvas.getContext("2d");
-    ctx.drawImage(randomImage, 0, 0); 
 
+    var imgData = ctx.getImageData(0,0, ctx.canvas.width, ctx.canvas.height)
+    for(var i = 0; i < ctx.canvas.height; ++i){
+	var offset = i * ctx.canvas.width * 4;
+	var widthCounter = 0;
+    	for(var k = 0; k < ctx.canvas.width * 4; k+=4){
+	    if(widthCounter % 2 == 0)
+    	        {imgData.data[offset + k + 0] = 0; imgData.data[offset + k + 1] = 0;  imgData.data[offset + k + 2] = 1; imgData.data[offset + k + 3] = 255;}
+	    if(widthCounter % 2 == 1)
+    	        {imgData.data[offset + k + 0] = 0; imgData.data[offset + k + 1] = 0;  imgData.data[offset + k + 2] = 2; imgData.data[offset + k + 3] = 255;}
+	    ++widthCounter;
+    	}
+    }
+
+
+    ctx.putImageData(imgData, 0, 0);
+
+$("body").append(randomCanvas);
     return randomCanvas;
   }
 

@@ -669,6 +669,8 @@
     	gl.useProgram(shaderProgram);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+/*
 //    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
@@ -691,7 +693,7 @@
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
     gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 
-
+*/
     everyOther = !(everyOther)
   
 
@@ -721,6 +723,8 @@
   {
     initGL();
     initShaders();
+
+    var startDate = new Date();
     initTexture();
 
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
@@ -739,18 +743,19 @@
   var randomTexture = gl.createTexture();
   handleLoadedTexture(randomCanvas, randomTexture)
   var drawPen = null;
+  var tickNumber = 0;		  
   function tick(){
      drawScene(drawPen, penColor, randomTexture);
      gl.bindFramebuffer( gl.FRAMEBUFFER, globalFbo);
      pixels = gl.readPixels(0, 0, canvasWidth, canvasHeight, gl.RGBA, gl.UNSIGNED_BYTE);
      gl.bindFramebuffer( gl.FRAMEBUFFER, null);
 
-     alert(pixels[0] + ":" + pixels[1] + ":" + pixels[2] + ":" + pixels[3] );
-     if(confirm("continue"))
-         setTimeout(tick, 0);  
+			   if(tickNumber < 3)
+         alert((new Date() - startDate) / 1000.0);
+
+     ++tickNumber;
   }
   setTimeout(tick, 0);  
-  
 
 
 
