@@ -70,7 +70,6 @@
   }
 </script>
 <script>
-
 function createFramebuffer(texture, canvasWidth, canvasHeight){
 
   globalRenderBufferId = gl.createRenderbuffer();
@@ -90,21 +89,7 @@ function createFramebuffer(texture, canvasWidth, canvasHeight){
 }
 
 function createBuffers(){
-         var penPolygonVertices = [
-        0.5,  0.5,  0.0,
-        -0.5,  0.5,  0.0,
-         0.5, -0.5,  0.0,
-        -0.5, -0.5,  0.0
-];
-
-        penPolygonBuffer= gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, penPolygonBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new WebGLFloatArray(penPolygonVertices), gl.STATIC_DRAW);
-	gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        penPolygonBuffer.itemSize = 3;
-        penPolygonBuffer.numItems = 4;
-
-
+    buffers = {};
 
     cubeVertexPositionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
@@ -118,6 +103,7 @@ function createBuffers(){
     gl.bufferData(gl.ARRAY_BUFFER, new WebGLFloatArray(vertices), gl.STATIC_DRAW);
     cubeVertexPositionBuffer.itemSize = 3;
     cubeVertexPositionBuffer.numItems = 4;
+    buffers.cubeVertexPositionBuffer = cubeVertexPositionBuffer;
 
 
 
@@ -133,6 +119,7 @@ function createBuffers(){
     gl.bufferData(gl.ARRAY_BUFFER, new WebGLFloatArray(textureCoords), gl.STATIC_DRAW);
     cubeVertexTextureCoordBuffer.itemSize = 2;
     cubeVertexTextureCoordBuffer.numItems = 4;
+    buffers.cubeVertexTextureCoordBuffer = cubeVertexTextureCoordBuffer;
 
 
     cubeVertexIndexBuffer = gl.createBuffer();
@@ -143,9 +130,11 @@ function createBuffers(){
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new WebGLUnsignedShortArray(cubeVertexIndices), gl.STATIC_DRAW);
     cubeVertexIndexBuffer.itemSize = 1;
     cubeVertexIndexBuffer.numItems = 6;
+    buffers.cubeVertexIndexBuffer = cubeVertexIndexBuffer;
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
 
+   return buffers;
 }
 
 
@@ -183,7 +172,7 @@ function createCanvas(width, height){
   return randomCanvas;
 }
 
-function calculateFrame(shaderProgram, textureOne, textureTwo, buffers, framebuffer){
+function calculateFrame(shaderProgram, textureOne, textureTwo, buffers, framebuffer, canvasWidth, canvasHeight){
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer)
 
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.cubeVertexPositionBuffer);
@@ -195,48 +184,36 @@ function calculateFrame(shaderProgram, textureOne, textureTwo, buffers, framebuf
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, textureOne);
     gl.uniform1i(shaderProgram.srcUniformLoc, 0);
-
-
-    var randomUniform = gl.getUniformLocation(shaderProgram, "randomOffset");
-    gl.uniform1f(randomUniform, 1.0);
+    gl.uniform1f(shaderProgram.randomUniform, 1);
 
     gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, randomTexture);
-    gl.uniform1i(gl.getUniformLocation(shaderProgram, "rand"), 1);
+    gl.bindTexture(gl.TEXTURE_2D, textureTwo);
+    gl.uniform1i(shaderProgram.randLoc, 1);
 
+    gl.uniform1f(shaderProgram.canvasWidthLoc, canvasWidth);
+    gl.uniform1f(shaderProgram.canvasHeightLoc, canvasHeight);
 
-    gl.uniform1f(gl.getUniformLocation(shaderProgram, "canvasWidth"), canvasWidth);
-    gl.uniform1f(gl.getUniformLocation(shaderProgram, "canvasHeight"), canvasHeight);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.cubeVertexIndexBuffer);
+    gl.drawElements(gl.TRIANGLES, buffers.cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
-    gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-
-
-   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-   gl.bindTexture(gl.TEXTURE_2D, null);
-   gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-   gl.useProgram(simpleShaderProgram);
-   gl.bindBuffer(gl.ARRAY_BUFFER, penPolygonBuffer);
-   gl.vertexAttribPointer(aPositionAttribute, penPolygonBuffer.itemSize, gl.FLOAT, false, 0, 0);
-   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, penPolygonIndexBuffer);
-
-   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
+var gl = null;
+$(document).ready(function(){
+  canvasWidth = 2;
+  canvasHeight = 2;
+  var canvas =  document.createElement("canvas");
 
-$.ready(function(){
-  canvasWidth = 600;
-  canvasHeight = 600;
-  var gl =  document.getElementById("canvas");
-
-  try
+  try{
     gl = canvas.getContext("webkit-3d");
-  catch(e){
-      try
+  } catch(e){
+      try{
           gl = canvas.getContext("moz-webgl");
-      catch(e){
+      } catch(e){
           $("body").html("\
             <span>WebGL is required, below are instructinons to enable WebGL for Safari and Firefox</span><br/>\
             <a href='http://webkit.org/blog/603/webgl-now-available-in-webkit-nightlies/'>webkit WebGL instructions</a><br/>\
@@ -248,23 +225,23 @@ $.ready(function(){
 
 //compile shaders  
   var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
-  gl.shaderSource(fragShader, $("matrixMult").html());
+  gl.shaderSource(fragShader, $("#matrixMult").html());
   gl.compileShader(fragShader);
   if(!gl.getShaderParameter(fragShader, gl.COMPILE_STATUS))
-      throw gl.getShaderInfoLog(shader);
+      throw gl.getShaderInfoLog(fragShader);
 
 
   var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-  gl.shaderSource(vertexShader, $("textureCordVertexShader").html());
+  gl.shaderSource(vertexShader, $("#textureCordVertexShader").html());
   gl.compileShader(vertexShader);
   if(!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS))
       throw gl.getShaderInfoLog(vertexShader);
 //end compile shaders              
 
 //init shader program
-  shaderProgram = gl.createProgram();
+  var shaderProgram = gl.createProgram();
   gl.attachShader(shaderProgram, vertexShader);
-  gl.attachShader(shaderProgram, fragmentShader);
+  gl.attachShader(shaderProgram, fragShader);
   gl.linkProgram(shaderProgram);
   gl.useProgram(shaderProgram);
 
@@ -273,13 +250,15 @@ $.ready(function(){
   shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
   gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
 
-
-  shaderProgram.srcUniformLoc(gl.getUniformLocation(shaderProgram, "src"));
-   
+  shaderProgram.srcUniformLoc = gl.getUniformLocation(shaderProgram, "src");
+  shaderProgram.randomUniformLoc = gl.getUniformLocation(shaderProgram, "randomOffset");
+  shaderProgram.randLoc =  gl.getUniformLocation(shaderProgram, "rand");
+  shaderProgram.canvasWidthLoc = gl.getUniformLocation(shaderProgram, "canvasWidth");
+  shaderProgram.canvasHeightLoc = gl.getUniformLocation(shaderProgram, "canvasHeight");
 //end shader program
 
-  var texturexOne = createTexture(createCanvas(canvasWidth, canvasHeight));
-  var texturexTwo = createTexture(createCanvas(canvasWidth, canvasHeight));
+  var textureOne = createTexture(createCanvas(canvasWidth, canvasHeight));
+  var textureTwo = createTexture(createCanvas(canvasWidth, canvasHeight));
 
   gl.clearColor(1.0, 1.0, 1.0, 1.0);
   gl.disable(gl.DEPTH_TEST)        
@@ -287,17 +266,19 @@ $.ready(function(){
   buffers = createBuffers();
   framebuffer = createFramebuffer(createTexture(createCanvas(canvasWidth, canvasHeight)), canvasWidth, canvasHeight);
 
+  var startDate = new Date();
+  var tickNumber = 0;
   function tick(){
-     drawScene(textureOne, textureTwo, buffers, framebuffer);
+     calculateFrame(shaderProgram, textureOne, textureTwo, buffers, framebuffer, canvasWidth, canvasHeight);
      gl.bindFramebuffer( gl.FRAMEBUFFER, framebuffer);
      pixels = gl.readPixels(0, 0, canvasWidth, canvasHeight, gl.RGBA, gl.UNSIGNED_BYTE);
      gl.bindFramebuffer( gl.FRAMEBUFFER, null);
 
      if(tickNumber < 3)
          alert((new Date() - startDate) / 1000.0);
-
      ++tickNumber;
   }
+  setTimeout(tick, 0);
 
   
 })
