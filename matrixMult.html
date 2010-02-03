@@ -55,6 +55,7 @@
     }
     outputVec.xyz = packValue(resultValue);
     gl_FragColor = vec4(outputVec,  1.0);
+
   }
 
 </script>
@@ -204,9 +205,12 @@ function calculateFrame(shaderProgram, textureOne, textureTwo, buffers, framebuf
 
 var gl = null;
 $(document).ready(function(){
-  canvasWidth = 2;
-  canvasHeight = 2;
+  canvasWidth = 3000;
+  canvasHeight = 3000;
   var canvas =  document.createElement("canvas");
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
+
 
   try{
     gl = canvas.getContext("webkit-3d");
@@ -221,7 +225,6 @@ $(document).ready(function(){
           throw "no WebGL";
       }
   }
-
 
 //compile shaders  
   var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
@@ -257,8 +260,6 @@ $(document).ready(function(){
   shaderProgram.canvasHeightLoc = gl.getUniformLocation(shaderProgram, "canvasHeight");
 //end shader program
 
-  var textureOne = createTexture(createCanvas(canvasWidth, canvasHeight));
-  var textureTwo = createTexture(createCanvas(canvasWidth, canvasHeight));
 
   gl.clearColor(1.0, 1.0, 1.0, 1.0);
   gl.disable(gl.DEPTH_TEST)        
@@ -266,6 +267,11 @@ $(document).ready(function(){
   buffers = createBuffers();
   framebuffer = createFramebuffer(createTexture(createCanvas(canvasWidth, canvasHeight)), canvasWidth, canvasHeight);
 
+  var textureOne = createTexture(createCanvas(canvasWidth, canvasHeight));
+  var textureTwo = createTexture(createCanvas(canvasWidth, canvasHeight));
+
+
+  alert('h');
   var startDate = new Date();
   var tickNumber = 0;
   function tick(){
@@ -274,7 +280,11 @@ $(document).ready(function(){
      pixels = gl.readPixels(0, 0, canvasWidth, canvasHeight, gl.RGBA, gl.UNSIGNED_BYTE);
      gl.bindFramebuffer( gl.FRAMEBUFFER, null);
 
-     if(tickNumber < 3)
+
+
+     if(tickNumber < 1)
+         setTimeout(tick, 0);
+     else
          alert((new Date() - startDate) / 1000.0);
      ++tickNumber;
   }
