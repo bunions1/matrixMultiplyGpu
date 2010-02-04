@@ -271,7 +271,7 @@ $(document).ready(function(){
   var textureTwo = createTexture(createCanvas(canvasWidth, canvasHeight));
 
 
-  alert('h');
+
   var startDate = new Date();
   var tickNumber = 0;
   function tick(){
@@ -279,8 +279,6 @@ $(document).ready(function(){
      gl.bindFramebuffer( gl.FRAMEBUFFER, framebuffer);
      pixels = gl.readPixels(0, 0, canvasWidth, canvasHeight, gl.RGBA, gl.UNSIGNED_BYTE);
      gl.bindFramebuffer( gl.FRAMEBUFFER, null);
-
-
 
      if(tickNumber < 1)
          setTimeout(tick, 0);
@@ -303,3 +301,4 @@ $(document).ready(function(){
 
 </body>
 </html>
+

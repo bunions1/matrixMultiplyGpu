@@ -1,0 +1,13 @@
+<html>
+<head>
+<script type="text/javascript" src="static/sylvester.js">  </script>
+<script>
+$(document).ready(function(){
+    $M()
+})
+</script>
+</head>
+<body>
+</body>
+</html>
+
