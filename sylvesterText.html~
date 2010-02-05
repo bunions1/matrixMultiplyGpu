@@ -1,9 +1,18 @@
 <html>
 <head>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.js"></script>
 <script type="text/javascript" src="static/sylvester.js">  </script>
 <script>
 $(document).ready(function(){
-    $M()
+  one = $M([1, 2],
+           [1, 2]);
+/*
+  one.multiply(
+  $M([1, 2],
+     [1, 2]
+  )
+);
+*/
 })
 </script>
 </head>

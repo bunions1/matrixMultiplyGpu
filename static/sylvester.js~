@@ -326,8 +326,181 @@ Vector.Zero = function(n) {
 };
 
 
-
 function Matrix() {}
+Matrix.gl = function(){
+  var gl = null;
+  try{
+      gl = document.createElement("canvas").getContext("webkit-3d");
+  } catch(e){
+      try{
+          gl = document.createElement("canvas").getContext("moz-webgl");
+      } catch(e){
+          $("body").html("\
+            <span>WebGL is required, below are instructinons to enable WebGL for Safari and Firefox</span><br/>\
+            <a href='http://webkit.org/blog/603/webgl-now-available-in-webkit-nightlies/'>webkit WebGL instructions</a><br/>\
+            <a href='http://learningwebgl.com/blog/?p=11#install-firefox'>firefox WebGL instructions</a>");
+          throw "no WebGL";
+      }
+  }
+  return gl;
+}();
+
+
+
+
+Matrix.BUFFERS = function (){
+    buffers = {};
+
+    cubeVertexPositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
+    vertices = [
+      // Front face
+      -1.0, -1.0,  0.0,
+       1.0, -1.0,  0.0,
+       1.0,  1.0,  0.0,
+      -1.0,  1.0,  0.0
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new WebGLFloatArray(vertices), gl.STATIC_DRAW);
+    cubeVertexPositionBuffer.itemSize = 3;
+    cubeVertexPositionBuffer.numItems = 4;
+    buffers.cubeVertexPositionBuffer = cubeVertexPositionBuffer;
+
+
+
+    cubeVertexTextureCoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexTextureCoordBuffer);
+    var textureCoords = [
+      // Front face
+      0.0, 0.0,
+      1.0, 0.0,
+      1.0, 1.0,
+      0.0, 1.0,
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new WebGLFloatArray(textureCoords), gl.STATIC_DRAW);
+    cubeVertexTextureCoordBuffer.itemSize = 2;
+    cubeVertexTextureCoordBuffer.numItems = 4;
+    buffers.cubeVertexTextureCoordBuffer = cubeVertexTextureCoordBuffer;
+
+
+    cubeVertexIndexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
+    var cubeVertexIndices = [
+      0, 1, 2,      0, 2, 3,    // Front face
+    ]
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new WebGLUnsignedShortArray(cubeVertexIndices), gl.STATIC_DRAW);
+    cubeVertexIndexBuffer.itemSize = 1;
+    cubeVertexIndexBuffer.numItems = 6;
+    buffers.cubeVertexIndexBuffer = cubeVertexIndexBuffer;
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+
+   return buffers;
+}
+
+
+Matrix.MATRIX_MULT_SHADER_PROGRAM = function(){
+
+var fragmentShaderString = "varying vec2 vTextureCoord;\
+\
+  uniform sampler2D src;\
+  uniform sampler2D rand;\
+  uniform float randomOffset;\
+  uniform float canvasWidth;\
+  uniform float canvasHeight;\
+\
+  float unPackValue(in vec3 bytes){\
+       bytes = bytes * vec3(255.0, 255.0, 255.0);\
+       return (bytes.x * 65536.0)  + (bytes.y * 256.0) + bytes.z;\
+  }\
+\
+  vec3 packValue(in float value){\
+\
+      vec3 ret = vec3(0.0, 0.3, 0.0);\
+      int totalBytes = 3;\
+      float radixMax = 0.0;\
+      int place = 0;\
+      for(int i = totalBytes; i > 0; --i){\
+	radixMax = pow(256.0, float(i - 1));\
+        place = (totalBytes - i);\
+	if(value >= radixMax){\
+          ret[place] = floor(value / radixMax);\
+          value = mod(value, radixMax);\
+	}\
+      }\
+\
+     return (ret   / vec3(255.0, 255.0, 255.0));\
+\
+  }\
+\
+  void main(void)\
+  {\
+    float pixelWidth =  1.0 / canvasWidth;\
+    float pixelHeight =  1.0 / canvasHeight;\
+    vec3 bottomSand = vec3(0.5, 0.5, 0.5);\
+    vec3 topSand = vec3(0.6, 0.6, 0.6);\
+    vec4 current = texture2D(src, vTextureCoord);\
+\
+    vec3 outputVec = vec3(0.0, 0.0, 0.0);\
+\
+  float resultValue = 0.0;\
+    for(float i = 0.0; i < float(canvasWidth); ++i){\
+    	float valueOne = 0.0; \
+    	valueOne = unPackValue(texture2D(src, vec2( (i * pixelWidth), vTextureCoord.t)).xyz);\
+    	float valueTwo = 0.0;\
+    	valueTwo = unPackValue(texture2D(rand, vec2(vTextureCoord.s, (i * pixelHeight))).xyz);\
+	resultValue += valueOne *  valueTwo;\
+    }\
+    outputVec.xyz = packValue(resultValue);\
+    gl_FragColor = vec4(outputVec,  1.0);\
+\
+  }\n";
+
+  var vertexShaderString = "attribute vec3 aVertexPosition;\
+  attribute vec2 aTextureCoord;\
+  varying vec2 vTextureCoord;\
+  void main(void)\
+  {\
+    gl_Position = vec4(aVertexPosition, 1.0);\
+    vTextureCoord = aTextureCoord;\
+  }\n";
+
+//compile shaders  
+var fragShader = Matrix.gl.createShader(Matrix.gl.FRAGMENT_SHADER);
+  Matrix.gl.shaderSource(fragShader, fragmentShaderString);
+  Matrix.gl.compileShader(fragShader);
+  if(!Matrix.gl.getShaderParameter(fragShader, Matrix.gl.COMPILE_STATUS))
+      throw Matrix.gl.getShaderInfoLog(fragShader);
+
+
+  var vertexShader = Matrix.gl.createShader(Matrix.gl.VERTEX_SHADER);
+  Matrix.gl.shaderSource(vertexShader, vertexShaderString);
+  Matrix.gl.compileShader(vertexShader);
+  if(!Matrix.gl.getShaderParameter(vertexShader, Matrix.gl.COMPILE_STATUS))
+      throw Matrix.gl.getShaderInfoLog(vertexShader);
+//end compile shaders              
+
+  var shaderProgram = Matrix.gl.createProgram();
+  Matrix.gl.attachShader(shaderProgram, vertexShader);
+  Matrix.gl.attachShader(shaderProgram, fragShader);
+  Matrix.gl.linkProgram(shaderProgram);
+  Matrix.gl.useProgram(shaderProgram);
+
+  shaderProgram.vertexPositionAttribute = Matrix.gl.getAttribLocation(shaderProgram, "aVertexPosition");
+  Matrix.gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+  shaderProgram.textureCoordAttribute = Matrix.gl.getAttribLocation(shaderProgram, "aTextureCoord");
+  Matrix.gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+
+  shaderProgram.srcUniformLoc = Matrix.gl.getUniformLocation(shaderProgram, "src");
+  shaderProgram.randomUniformLoc = Matrix.gl.getUniformLocation(shaderProgram, "randomOffset");
+  shaderProgram.randLoc =  Matrix.gl.getUniformLocation(shaderProgram, "rand");
+  shaderProgram.canvasWidthLoc = Matrix.gl.getUniformLocation(shaderProgram, "canvasWidth");
+  shaderProgram.canvasHeightLoc = Matrix.gl.getUniformLocation(shaderProgram, "canvasHeight");
+
+
+  return shaderProgram;
+
+}();
+
 Matrix.prototype = {
 
   // Returns element (i,j) of the matrix
@@ -434,6 +607,83 @@ Matrix.prototype = {
     // this.columns should equal matrix.rows
     return (this.elements[0].length == M.length);
   },
+
+  calculateFrame: function(framebuffer, textureOne, textureTwo, canvasWidth, canvasHeight){
+    gl.bindFramebuffer(Matrix.gl.FRAMEBUFFER, framebuffer)
+
+    gl.bindBuffer(Matrix.gl.ARRAY_BUFFER, Matrix.BUFFERS.cubeVertexPositionBuffer);
+    gl.vertexAttribPointer(Matrix.MATRIX_MULT_SHADER_PROGRAM.vertexPositionAttribute, Matrix.BUFFERS.cubeVertexPositionBuffer.itemSize, Matrix.gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(Matrix.gl.ARRAY_BUFFER, Matrix.BUFFERS.cubeVertexTextureCoordBuffer);
+    gl.vertexAttribPointer(Matrix.MATRIX_MULT_SHADER_PROGRAM.textureCoordAttribute, Matrix.BUFFERS.cubeVertexTextureCoordBuffer.itemSize, Matrix.gl.FLOAT, false, 0, 0);
+
+    gl.activeTexture(Matrix.gl.TEXTURE0);
+    gl.bindTexture(Matrix.gl.TEXTURE_2D, textureOne);
+    gl.uniform1i(shaderProgram.srcUniformLoc, 0);
+    gl.uniform1f(shaderProgram.randomUniform, 1);
+
+    gl.activeTexture(Matrix.gl.TEXTURE1);
+    gl.bindTexture(Matrix.gl.TEXTURE_2D, textureTwo);
+    gl.uniform1i(shaderProgram.randLoc, 1);
+
+    gl.uniform1f(shaderProgram.canvasWidthLoc, canvasWidth);
+    gl.uniform1f(shaderProgram.canvasHeightLoc, canvasHeight);
+
+    gl.bindBuffer(Matrix.gl.ELEMENT_ARRAY_BUFFER, Matrix.BUFFERS.cubeVertexIndexBuffer);
+    gl.drawElements(Matrix.gl.TRIANGLES, Matrix.BUFFERS.cubeVertexIndexBuffer.numItems, Matrix.gl.UNSIGNED_SHORT, 0);
+
+    gl.bindBuffer(Matrix.gl.ELEMENT_ARRAY_BUFFER, null);
+    gl.bindTexture(Matrix.gl.TEXTURE_2D, null);
+    gl.bindBuffer(Matrix.gl.ARRAY_BUFFER, null);
+    gl.bindFramebuffer(Matrix.gl.FRAMEBUFFER, null);
+  },
+
+  createTexture: function(canvasWidth, canvasHeight){
+    var canvas = document.createElement("canvas");
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    var ctx = canvas.getContext("2d");
+    var imgData = ctx.getImageData(0,0, ctx.canvas.width, ctx.canvas.height)
+    for(var i = 0; i < ctx.canvas.height; ++i){
+	var offset = i * ctx.canvas.width * 4;
+	var widthCounter = 0;
+  	for(var k = 0; k < ctx.canvas.width * 4; k+=4){
+	    if(widthCounter % 2 == 0)
+  	        {imgData.data[offset + k + 0] = 0; imgData.data[offset + k + 1] = 0;  imgData.data[offset + k + 2] = 1; imgData.data[offset + k + 3] = 255;}
+	    if(widthCounter % 2 == 1)
+  	        {imgData.data[offset + k + 0] = 0; imgData.data[offset + k + 1] = 0;  imgData.data[offset + k + 2] = 2; imgData.data[offset + k + 3] = 255;}
+	    ++widthCounter;
+  	}
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    var texture = gl.createTexture();
+    gl.enable(Matrix.gl.TEXTURE_2D);
+    gl.bindTexture(Matrix.gl.TEXTURE_2D, texture);
+    gl.texImage2D(Matrix.gl.TEXTURE_2D, 0, canvas);
+    gl.texParameteri(Matrix.gl.TEXTURE_2D, Matrix.gl.TEXTURE_MAG_FILTER, Matrix.gl.NEAREST);
+    gl.texParameteri(Matrix.gl.TEXTURE_2D, Matrix.gl.TEXTURE_MIN_FILTER, Matrix.gl.NEAREST);
+    gl.bindTexture(Matrix.gl.TEXTURE_2D, null);
+    return texture;
+  },
+
+  createFramebuffer: function (texture, canvasWidth, canvasHeight){
+    var globalRenderBufferId = Matrix.gl.createRenderbuffer();
+    Matrix.gl.bindRenderbuffer(Matrix.gl.RENDERBUFFER, globalRenderBufferId);
+    Matrix.gl.renderbufferStorage(Matrix.gl.RENDERBUFFER, Matrix.gl.DEPTH_COMPONENT, canvasWidth, canvasHeight);
+    Matrix.gl.isRenderbuffer(globalRenderBufferId);
+    Matrix.gl.bindRenderbuffer(Matrix.gl.RENDERBUFFER, null);
+
+
+    globalFbo = Matrix.gl.createFramebuffer();
+    Matrix.gl.bindFramebuffer( Matrix.gl.FRAMEBUFFER, globalFbo);
+    Matrix.gl.framebufferTexture2D( Matrix.gl.FRAMEBUFFER, Matrix.gl.COLOR_ATTACHMENT0, Matrix.gl.TEXTURE_2D, texture, 0);
+    Matrix.gl.framebufferRenderbuffer(Matrix.gl.FRAMEBUFFER, Matrix.gl.DEPTH_ATTACHMENT, Matrix.gl.RENDERBUFFER, globalRenderBufferId);
+    Matrix.gl.bindFramebuffer( Matrix.gl.FRAMEBUFFER, null);
+
+    return globalFbo
+  },
+
 
   // Returns the result of multiplying the matrix from the right by the argument.
   // If the argument is a scalar then just multiply all the elements. If the argument is

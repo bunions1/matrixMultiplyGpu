@@ -4,16 +4,13 @@
 <script type="text/javascript" src="static/sylvester.js">  </script>
 <script>
 $(document).ready(function(){
-  one = $M([1, 2],
-           [1, 2]);
-/*
-  one.multiply(
-  $M([1, 2],
-     [1, 2]
-  )
-);
-*/
-})
+  one = $M([[1, 2],
+           [1, 2]]);
+
+  two = one.multiply(one);
+
+});
+
 </script>
 </head>
 <body>
