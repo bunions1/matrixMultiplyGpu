@@ -328,12 +328,16 @@ Vector.Zero = function(n) {
 
 function Matrix() {}
 Matrix.gl = function(){
+  var canvas = document.createElement("canvas");
+  canvas.width = 2;
+  canvas.height = 2;
+
   var gl = null;
   try{
-      gl = document.createElement("canvas").getContext("webkit-3d");
+      gl = canvas.getContext("webkit-3d");
   } catch(e){
       try{
-          gl = document.createElement("canvas").getContext("moz-webgl");
+          gl = canvas.getContext("moz-webgl");
       } catch(e){
           $("body").html("\
             <span>WebGL is required, below are instructinons to enable WebGL for Safari and Firefox</span><br/>\
@@ -608,6 +612,7 @@ Matrix.prototype = {
   },
 
   calculateFrame: function(framebuffer, textureOne, textureTwo, canvasWidth, canvasHeight){
+
     Matrix.gl.bindFramebuffer(Matrix.gl.FRAMEBUFFER, framebuffer)
 
     Matrix.gl.bindBuffer(Matrix.gl.ARRAY_BUFFER, Matrix.BUFFERS.cubeVertexPositionBuffer);
@@ -655,6 +660,7 @@ Matrix.prototype = {
   	}
     }
     ctx.putImageData(imgData, 0, 0);
+
     return this.createTextureFromCanvas(canvas);
 
   },
@@ -677,13 +683,29 @@ Matrix.prototype = {
     Matrix.gl.bindRenderbuffer(Matrix.gl.RENDERBUFFER, null);
 
 
-    globalFbo = Matrix.gl.createFramebuffer();
+    var globalFbo = Matrix.gl.createFramebuffer();
     Matrix.gl.bindFramebuffer( Matrix.gl.FRAMEBUFFER, globalFbo);
     Matrix.gl.framebufferTexture2D( Matrix.gl.FRAMEBUFFER, Matrix.gl.COLOR_ATTACHMENT0, Matrix.gl.TEXTURE_2D, texture, 0);
     Matrix.gl.framebufferRenderbuffer(Matrix.gl.FRAMEBUFFER, Matrix.gl.DEPTH_ATTACHMENT, Matrix.gl.RENDERBUFFER, globalRenderBufferId);
     Matrix.gl.bindFramebuffer( Matrix.gl.FRAMEBUFFER, null);
 
     return globalFbo
+  },
+
+  unpackTexture: function(pixels, width, height, bytesPerValue){
+        var unpack = function(bytes){
+	}
+          
+	var elements = [];
+	for(var i = 0; i < pixels.length; ++i){
+	    var row = []
+	    for(k = 0; k < width; ++k){
+                var begin = (i * width) + (k * bytesPerValue);
+                var end = (i * width) + (k * bytesPerValue) + bytesPerValue;
+		row.push(unpack(pixels.slice(begin, end)));
+	    }
+            elements.push(row);
+	}
   },
 
 
@@ -701,23 +723,25 @@ Matrix.prototype = {
     if (!this.canMultiplyFromLeft(M)) { return null; }
     var ni = this.elements.length, ki = ni, i, nj, kj = M[0].length, j;
     var cols = this.elements[0].length, elements = [], sum, nc, c;
+
+
+    var fbcanvas = document.createElement("canvas");
+    fbcanvas.width = matrix.rows();
+    fbcanvas.height = this.rows(); 
+
+
+    var framebuffer = this.createFramebuffer(this.createTextureFromCanvas(fbcanvas) , fbcanvas.width, fbcanvas.height); 
     var leftMatrix = this.createTexture(this.cols(), this.rows());
     var rightMatrix = matrix.createTexture(matrix.cols(), matrix.rows());
 
-    var canvas = document.createElement("canvas");
-    canvas.width = matrix.rows();
-    canvas.height = this.rows(); 
-    var framebuffer = this.createFramebuffer(this.createTextureFromCanvas(canvas) , canvas.width, canvas.height); 
-
     pixels = null;
-    self = this;
-    function tick(){    
-        self.calculateFrame(Matrix.MATRIX_MULT_SHADER_PROGRAM, leftMatrix, rightMatrix, Matrix.BUFFERS, framebuffer, canvas.width, canvas.height);
-	Matrix.gl.bindFramebuffer( Matrix.gl.FRAMEBUFFER, framebuffer);
-	pixels = Matrix.gl.readPixels(0, 0, canvas.width, canvas.height, Matrix.gl.RGBA, Matrix.gl.UNSIGNED_BYTE);
-	Matrix.gl.bindFramebuffer( Matrix.gl.FRAMEBUFFER, null);
-    }
-    setTimeout(tick, 0)
+    this.calculateFrame(framebuffer, leftMatrix, rightMatrix, fbcanvas.width, fbcanvas.height);
+    Matrix.gl.bindFramebuffer( Matrix.gl.FRAMEBUFFER, framebuffer);
+    pixels = Matrix.gl.readPixels(0, 0, fbcanvas.width, fbcanvas.height, Matrix.gl.RGBA, Matrix.gl.UNSIGNED_BYTE);
+    Matrix.gl.bindFramebuffer( Matrix.gl.FRAMEBUFFER, null);
+   
+    elements = Matrix.unpackTexture(pixels, fbcanvas.width, fbcanvas.height);
+
 //    var M = Matrix.create(elements);
     return returnVector ? M.col(1) : "end";
   },

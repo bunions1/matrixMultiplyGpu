@@ -154,22 +154,7 @@ function createTexture(canvas){
 function createCanvas(width, height){
 
   var randomCanvas = document.createElement("canvas");
-  randomCanvas.width = canvasWidth;
-  randomCanvas.height = canvasHeight;
-  var ctx = randomCanvas.getContext("2d");
-  var imgData = ctx.getImageData(0,0, ctx.canvas.width, ctx.canvas.height)
-  for(var i = 0; i < ctx.canvas.height; ++i){
-	var offset = i * ctx.canvas.width * 4;
-	var widthCounter = 0;
-  	for(var k = 0; k < ctx.canvas.width * 4; k+=4){
-	    if(widthCounter % 2 == 0)
-  	        {imgData.data[offset + k + 0] = 0; imgData.data[offset + k + 1] = 0;  imgData.data[offset + k + 2] = 1; imgData.data[offset + k + 3] = 255;}
-	    if(widthCounter % 2 == 1)
-  	        {imgData.data[offset + k + 0] = 0; imgData.data[offset + k + 1] = 0;  imgData.data[offset + k + 2] = 2; imgData.data[offset + k + 3] = 255;}
-	    ++widthCounter;
-  	}
-  }
-  ctx.putImageData(imgData, 0, 0);
+
   return randomCanvas;
 }
 
