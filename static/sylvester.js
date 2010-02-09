@@ -327,10 +327,11 @@ Vector.Zero = function(n) {
 
 
 function Matrix() {}
-Matrix.gl = function(){
+
+Matrix.resizeGlContext = function(width, height){
   var canvas = document.createElement("canvas");
-  canvas.width = 2;
-  canvas.height = 2;
+  canvas.width = width;
+  canvas.height = height;
 
   var gl = null;
   try{
@@ -346,9 +347,10 @@ Matrix.gl = function(){
           throw "no WebGL";
       }
   }
-  return gl;
-}();
 
+  Matrix.gl= gl;
+};
+Matrix.resizeGlContext(1,1);
 
 
 
@@ -398,7 +400,7 @@ Matrix.BUFFERS = function (){
     Matrix.gl.bindBuffer(Matrix.gl.ELEMENT_ARRAY_BUFFER, null);
 
     return buffers;
-}();
+};
 
 
 Matrix.MATRIX_MULT_SHADER_PROGRAM = function(){
@@ -502,7 +504,17 @@ var fragShader = Matrix.gl.createShader(Matrix.gl.FRAGMENT_SHADER);
 
   return shaderProgram;
 
-}();
+};
+ 
+function slice(pixels, begin, end){
+    var slice = [];  
+    for(i = begin; i < end; ++i){
+	if(i >= pixels.length)
+	    throw "slice fail";
+	slice.push(pixels[i])
+    }
+    return slice;
+}
 
 Matrix.prototype = {
 
@@ -642,12 +654,13 @@ Matrix.prototype = {
     Matrix.gl.bindFramebuffer(Matrix.gl.FRAMEBUFFER, null);
   },
 
-  createTexture: function(canvasWidth, canvasHeight){
+  createTexture: function(canvasWidth, canvasHeight, elements){
     var canvas = document.createElement("canvas");
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
     var ctx = canvas.getContext("2d");
     var imgData = ctx.getImageData(0,0, ctx.canvas.width, ctx.canvas.height)
+
     for(var i = 0; i < ctx.canvas.height; ++i){
 	var offset = i * ctx.canvas.width * 4;
 	var widthCounter = 0;
@@ -694,18 +707,27 @@ Matrix.prototype = {
 
   unpackTexture: function(pixels, width, height, bytesPerValue){
         var unpack = function(bytes){
+	    var value = 0.0;
+	    //ignore final byte which is always 255
+	    for(var i = 0; i <  bytes.length - 1; ++i){
+		value += bytes[i] * Math.pow(256, (bytes.length - 2) - i);
+	    }
+	    return value;
 	}
-          
+
 	var elements = [];
-	for(var i = 0; i < pixels.length; ++i){
-	    var row = []
-	    for(k = 0; k < width; ++k){
-                var begin = (i * width) + (k * bytesPerValue);
-                var end = (i * width) + (k * bytesPerValue) + bytesPerValue;
-		row.push(unpack(pixels.slice(begin, end)));
+	for(var i = 0; i < height; ++i){
+	    var row = [];
+	    for(var k = 0; k < width; ++k){
+                var begin = (i * width * bytesPerValue) + (k * bytesPerValue);
+                var end = (i * width * bytesPerValue) + (k * bytesPerValue) + bytesPerValue;
+		if(!( end <= pixels.length))
+		    throw "dimensions wrong in unpackTexture";
+  		row.push(unpack(slice(pixels, begin, end)));
 	    }
             elements.push(row);
 	}
+	return elements;
   },
 
 
@@ -724,15 +746,17 @@ Matrix.prototype = {
     var ni = this.elements.length, ki = ni, i, nj, kj = M[0].length, j;
     var cols = this.elements[0].length, elements = [], sum, nc, c;
 
-
     var fbcanvas = document.createElement("canvas");
     fbcanvas.width = matrix.rows();
     fbcanvas.height = this.rows(); 
 
+    Matrix.resizeGlContext(fbcanvas.width, fbcanvas.height);
+    Matrix.BUFFERS = Matrix.BUFFERS();
+    Matrix.MATRIX_MULT_SHADER_PROGRAM =     Matrix.MATRIX_MULT_SHADER_PROGRAM();
 
     var framebuffer = this.createFramebuffer(this.createTextureFromCanvas(fbcanvas) , fbcanvas.width, fbcanvas.height); 
-    var leftMatrix = this.createTexture(this.cols(), this.rows());
-    var rightMatrix = matrix.createTexture(matrix.cols(), matrix.rows());
+    var leftMatrix = this.createTexture(this.cols(), this.rows(), this.elements);
+    var rightMatrix = matrix.createTexture(matrix.cols(), matrix.rows(), matrix.elements);
 
     pixels = null;
     this.calculateFrame(framebuffer, leftMatrix, rightMatrix, fbcanvas.width, fbcanvas.height);
@@ -740,10 +764,10 @@ Matrix.prototype = {
     pixels = Matrix.gl.readPixels(0, 0, fbcanvas.width, fbcanvas.height, Matrix.gl.RGBA, Matrix.gl.UNSIGNED_BYTE);
     Matrix.gl.bindFramebuffer( Matrix.gl.FRAMEBUFFER, null);
    
-    elements = Matrix.unpackTexture(pixels, fbcanvas.width, fbcanvas.height);
+    elements = this.unpackTexture(pixels, fbcanvas.width, fbcanvas.height, 4);
 
-//    var M = Matrix.create(elements);
-    return returnVector ? M.col(1) : "end";
+    var M = Matrix.create(elements);
+    return returnVector ? M.col(1) : M;
   },
 
   x: function(matrix) { return this.multiply(matrix); },
