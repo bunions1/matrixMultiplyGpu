@@ -420,7 +420,7 @@ var fragmentShaderString = "varying vec2 vTextureCoord;\
 \
   vec3 packValue(in float value){\
 \
-      vec3 ret = vec3(0.0, 0.3, 0.0);\
+      vec3 ret = vec3(0.0, 0.0, 0.0);\
       int totalBytes = 3;\
       float radixMax = 0.0;\
       int place = 0;\
@@ -447,9 +447,9 @@ var fragmentShaderString = "varying vec2 vTextureCoord;\
 \
     vec3 outputVec = vec3(0.0, 0.0, 0.0);\
 \
-  float resultValue = 0.0;\
+    float resultValue = 0.0;\
     for(float i = 0.0; i < float(canvasWidth); ++i){\
-    	float valueOne = 0.0; \
+    	float valueOne = 0.0;\
     	valueOne = unPackValue(texture2D(src, vec2( (i * pixelWidth), vTextureCoord.t)).xyz);\
     	float valueTwo = 0.0;\
     	valueTwo = unPackValue(texture2D(rand, vec2(vTextureCoord.s, (i * pixelHeight))).xyz);\
@@ -654,28 +654,50 @@ Matrix.prototype = {
     Matrix.gl.bindFramebuffer(Matrix.gl.FRAMEBUFFER, null);
   },
 
-  createTexture: function(canvasWidth, canvasHeight, elements){
+  createTexture: function(canvasWidth, canvasHeight, elements, bytesPerValue){
+    var packValue = function(value, bytesPerValue){
+        bytes =[]
+	var radixMax = 0.0;		
+	var place = 0;			
+	for(var i = bytesPerValue; i > 0; --i){	
+	    radixMax = Math.pow(256.0, i - 1);	
+	    place = (bytesPerValue - i);		
+	    if(value >= radixMax){			
+		bytes[place] = Math.floor(value / radixMax);	
+		value = value % radixMax;		
+	    }else{
+		bytes[place] = 0;
+	    }					
+	}		
+	if (value > 0)
+	    throw "overflow in packValue to texture"
+        //last byte, alpha value has to be 255					
+        bytes.push(255)
+	return bytes;		
+    }
+    var overwrite = function(dest, offset, src){
+	for(var i = 0; i < src.length; ++i){
+	    dest[offset + i] = src[i];
+	}
+    }
+
     var canvas = document.createElement("canvas");
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
     var ctx = canvas.getContext("2d");
     var imgData = ctx.getImageData(0,0, ctx.canvas.width, ctx.canvas.height)
 
-    for(var i = 0; i < ctx.canvas.height; ++i){
-	var offset = i * ctx.canvas.width * 4;
-	var widthCounter = 0;
-  	for(var k = 0; k < ctx.canvas.width * 4; k+=4){
-	    if(widthCounter % 2 == 0)
-  	        {imgData.data[offset + k + 0] = 0; imgData.data[offset + k + 1] = 0;  imgData.data[offset + k + 2] = 1; imgData.data[offset + k + 3] = 255;}
-	    if(widthCounter % 2 == 1)
-  	        {imgData.data[offset + k + 0] = 0; imgData.data[offset + k + 1] = 0;  imgData.data[offset + k + 2] = 2; imgData.data[offset + k + 3] = 255;}
-	    ++widthCounter;
-  	}
+    for(var i = 0; i < elements.length; ++i){
+	var row = elements[i];
+	var rowOffset = (i * row.length * 4)
+	for(var k = 0; k < row.length; ++k){
+	    var offset = rowOffset + (k * 4);
+	    overwrite(imgData.data, offset, packValue(row[k], bytesPerValue));
+	}
     }
     ctx.putImageData(imgData, 0, 0);
 
     return this.createTextureFromCanvas(canvas);
-
   },
   createTextureFromCanvas: function(canvas){
     var texture = Matrix.gl.createTexture();
@@ -755,8 +777,10 @@ Matrix.prototype = {
     Matrix.MATRIX_MULT_SHADER_PROGRAM =     Matrix.MATRIX_MULT_SHADER_PROGRAM();
 
     var framebuffer = this.createFramebuffer(this.createTextureFromCanvas(fbcanvas) , fbcanvas.width, fbcanvas.height); 
-    var leftMatrix = this.createTexture(this.cols(), this.rows(), this.elements);
-    var rightMatrix = matrix.createTexture(matrix.cols(), matrix.rows(), matrix.elements);
+    var leftMatrix = this.createTexture(this.cols(), this.rows(), this.elements, 3);
+    var rightMatrix = matrix.createTexture(matrix.cols(), matrix.rows(), matrix.elements, 3);
+
+
 
     pixels = null;
     this.calculateFrame(framebuffer, leftMatrix, rightMatrix, fbcanvas.width, fbcanvas.height);
