@@ -25,7 +25,7 @@ function createArrayMatrix(width, height, valueOne, valueTwo){
 }
 
 
-$("#execute").ready(function(){
+$(document).ready(function(){
   var startDate = new Date();
   one = $M(createArrayMatrix(1024, 1024, 1, 2));
   other = $M(createArrayMatrix(1024, 1024, 1));
@@ -37,8 +37,6 @@ $("#execute").ready(function(){
 </script>
 </head>
 <body>
-This page include the sylvester library, modified to use the gpu for matrix multiply, the api is exactly the same as the orignal sylvester. Hit execute to benchmark a multiply of two 1024x1024 matrices<br/>
-<input id="execute" type="button" value="execute">
 </body>
 </html>
 

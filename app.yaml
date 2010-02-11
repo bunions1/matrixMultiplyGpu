@@ -16,6 +16,11 @@ handlers:
   static_files: sylvesterTest.html
   upload: sylvesterTest.html
 
+- url: /sylvesterTestOriginal\.html
+  static_files: sylvesterTestOriginal.html
+  upload: sylvesterTestOriginal.html
+
+
 - url: /static
   static_dir: static
 
