@@ -12,9 +12,14 @@ handlers:
   static_files: matrixMult.html
   upload: matrixMult.html
 
-- url: /sylvesterText\.html
-  static_files: sylvesterText.html
-  upload: sylvesterText.html
+- url: /sylvesterTest\.html
+  static_files: sylvesterTest.html
+  upload: sylvesterTest.html
+
+- url: /sylvesterTestOriginal\.html
+  static_files: sylvesterTestOriginal.html
+  upload: sylvesterTestOriginal.html
+
 
 - url: /static
   static_dir: static

@@ -24,14 +24,16 @@ function createArrayMatrix(width, height, valueOne, valueTwo){
     return arrayMatrix;
 }
 
-
-$("#execute").ready(function(){
+$(document).read(function(){
+$("#execute").click(function(){
+alert('hi');
   var startDate = new Date();
   one = $M(createArrayMatrix(1024, 1024, 1, 2));
   other = $M(createArrayMatrix(1024, 1024, 1));
   two = one.multiply(other);
   alert((new Date() - startDate) / 1000.0);
 
+});
 });
 
 </script>
