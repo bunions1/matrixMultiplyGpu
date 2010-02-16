@@ -505,6 +505,8 @@ var fragShader = Matrix.gl.createShader(Matrix.gl.FRAGMENT_SHADER);
   return shaderProgram;
 
 };
+
+
  
 function slice(pixels, begin, end){
     var slice = [];  
@@ -743,9 +745,15 @@ Matrix.prototype = {
 	    for(var k = 0; k < width; ++k){
                 var begin = (i * width * bytesPerValue) + (k * bytesPerValue);
                 var end = (i * width * bytesPerValue) + (k * bytesPerValue) + bytesPerValue;
-		if(!( end <= pixels.length))
-		    throw "dimensions wrong in unpackTexture";
-  		row.push(unpack(slice(pixels, begin, end)));
+		if("length" in pixels){
+		    if(!( end <= pixels.length))
+			throw "dimensions wrong in unpackTexture";
+		    row.push(unpack(slice(pixels, begin, end)));
+		}else{
+		    if(!( end <= pixels.data.length))
+			throw "dimensions wrong in unpackTexture";
+		    row.push(unpack(slice(pixels.data, begin, end)));
+		}
 	    }
             elements.push(row);
 	}

@@ -24,23 +24,46 @@ function createArrayMatrix(width, height, valueOne, valueTwo){
     return arrayMatrix;
 }
 
-$(document).read(function(){
+$(document).ready(function(){
 $("#execute").click(function(){
-alert('hi');
   var startDate = new Date();
   one = $M(createArrayMatrix(1024, 1024, 1, 2));
   other = $M(createArrayMatrix(1024, 1024, 1));
   two = one.multiply(other);
   alert((new Date() - startDate) / 1000.0);
-
 });
+
+
+$("#executeSample").click(function(){
+    var one = $M([[1,2], [1, 2 ]]);
+    var two= $M([[1,2], [1, 2 ]]);
+    var result = one.multiply(two)
+    alert(result.elements);
+});
+
 });
 
 </script>
 </head>
 <body>
+<div style="padding: 5px; border: 1px solid black; position:relative; width:500px">
 This page include the sylvester library, modified to use the gpu for matrix multiply, the api is exactly the same as the orignal sylvester. Hit execute to benchmark a multiply of two 1024x1024 matrices<br/>
-<input id="execute" type="button" value="execute">
+</div>
+<input id="execute" type="button" value="execute"><br/><br/>
+Open up firebug or the console to test it out <br/>
+example code:
+<pre>
+<code>
+    var one = $M([[1,2], [1, 2 ]]);
+    var two= $M([[1,2], [1, 2 ]]);
+    var result = one.multiply(two)
+    alert(result.elements);
+</code>
+</pre>
+<input id="executeSample" type="button" value="execute"><br/><br/>
+
+
+<span><a href="sylvesterTest.html">gpu sylvester</a>&nbsp;&nbsp;&nbsp;<a href="sylvesterTestOriginal.html">original sylvester</a></span>
 </body>
 </html>
 
