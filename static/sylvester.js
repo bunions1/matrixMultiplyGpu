@@ -354,7 +354,7 @@ Matrix.resizeGlContext(1,1);
 
 
 
-Matrix.BUFFERS = function (){
+BUFFERS = function (){
     buffers = {};
 
     cubeVertexPositionBuffer = Matrix.gl.createBuffer();
@@ -403,7 +403,9 @@ Matrix.BUFFERS = function (){
 };
 
 
-Matrix.MATRIX_MULT_SHADER_PROGRAM = function(){
+
+
+MATRIX_MULT_SHADER_PROGRAM = function(){
 
 var fragmentShaderString = "varying vec2 vTextureCoord;\
 \
@@ -781,8 +783,8 @@ Matrix.prototype = {
     fbcanvas.height = this.rows(); 
 
     Matrix.resizeGlContext(fbcanvas.width, fbcanvas.height);
-    Matrix.BUFFERS = Matrix.BUFFERS();
-    Matrix.MATRIX_MULT_SHADER_PROGRAM =     Matrix.MATRIX_MULT_SHADER_PROGRAM();
+    Matrix.BUFFERS = BUFFERS();
+    Matrix.MATRIX_MULT_SHADER_PROGRAM = MATRIX_MULT_SHADER_PROGRAM();
 
     var framebuffer = this.createFramebuffer(this.createTextureFromCanvas(fbcanvas) , fbcanvas.width, fbcanvas.height); 
     var leftMatrix = this.createTexture(this.cols(), this.rows(), this.elements, 3);
