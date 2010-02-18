@@ -443,9 +443,6 @@ var fragmentShaderString = "varying vec2 vTextureCoord;\
   {\
     float pixelWidth =  1.0 / canvasWidth;\
     float pixelHeight =  1.0 / canvasHeight;\
-    vec3 bottomSand = vec3(0.5, 0.5, 0.5);\
-    vec3 topSand = vec3(0.6, 0.6, 0.6);\
-    vec4 current = texture2D(src, vTextureCoord);\
 \
     vec3 outputVec = vec3(0.0, 0.0, 0.0);\
 \
