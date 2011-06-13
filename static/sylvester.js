@@ -334,22 +334,19 @@ Matrix.resizeGlContext = function(width, height){
   canvas.height = height;
 
   var gl = null;
-  try{
-      gl = canvas.getContext("webkit-3d");
-  } catch(e){
-      try{
-          gl = canvas.getContext("moz-webgl");
-      } catch(e){
+  gl = canvas.getContext("webkit-3d");
+  if(null == gl)
+      gl = canvas.getContext("moz-webgl");
+  if(null == gl){
           $("body").html("\
             <span>WebGL is required, below are instructinons to enable WebGL for Safari and Firefox</span><br/>\
             <a href='http://webkit.org/blog/603/webgl-now-available-in-webkit-nightlies/'>webkit WebGL instructions</a><br/>\
             <a href='http://learningwebgl.com/blog/?p=11#install-firefox'>firefox WebGL instructions</a>");
           throw "no WebGL";
-      }
   }
-
   Matrix.gl= gl;
 };
+
 Matrix.resizeGlContext(1,1);
 
 
@@ -366,7 +363,7 @@ BUFFERS = function (){
        1.0,  1.0,  0.0,
       -1.0,  1.0,  0.0
     ];
-    Matrix.gl.bufferData(Matrix.gl.ARRAY_BUFFER, new WebGLFloatArray(vertices), Matrix.gl.STATIC_DRAW);
+    Matrix.gl.bufferData(Matrix.gl.ARRAY_BUFFER, new Float32Array(vertices), Matrix.gl.STATIC_DRAW);
     cubeVertexPositionBuffer.itemSize = 3;
     cubeVertexPositionBuffer.numItems = 4;
     buffers.cubeVertexPositionBuffer = cubeVertexPositionBuffer;
@@ -382,7 +379,7 @@ BUFFERS = function (){
       1.0, 1.0,
       0.0, 1.0,
     ];
-    Matrix.gl.bufferData(Matrix.gl.ARRAY_BUFFER, new WebGLFloatArray(textureCoords), Matrix.gl.STATIC_DRAW);
+    Matrix.gl.bufferData(Matrix.gl.ARRAY_BUFFER, new Float32Array(textureCoords), Matrix.gl.STATIC_DRAW);
     cubeVertexTextureCoordBuffer.itemSize = 2;
     cubeVertexTextureCoordBuffer.numItems = 4;
     buffers.cubeVertexTextureCoordBuffer = cubeVertexTextureCoordBuffer;
@@ -393,7 +390,7 @@ BUFFERS = function (){
     var cubeVertexIndices = [
       0, 1, 2,      0, 2, 3,    // Front face
     ]
-    Matrix.gl.bufferData(Matrix.gl.ELEMENT_ARRAY_BUFFER, new WebGLUnsignedShortArray(cubeVertexIndices), Matrix.gl.STATIC_DRAW);
+    Matrix.gl.bufferData(Matrix.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices), Matrix.gl.STATIC_DRAW);
     cubeVertexIndexBuffer.itemSize = 1;
     cubeVertexIndexBuffer.numItems = 6;
     buffers.cubeVertexIndexBuffer = cubeVertexIndexBuffer;
@@ -407,7 +404,11 @@ BUFFERS = function (){
 
 MATRIX_MULT_SHADER_PROGRAM = function(){
 
-var fragmentShaderString = "varying vec2 vTextureCoord;\
+var fragmentShaderString = "\
+#ifdef GL_ES\n\
+precision highp float;\n\
+#endif\n\
+varying vec2 vTextureCoord;\
 \
   uniform sampler2D src;\
   uniform sampler2D rand;\
@@ -415,8 +416,15 @@ var fragmentShaderString = "varying vec2 vTextureCoord;\
   uniform float canvasWidth;\
   uniform float canvasHeight;\
 \
+ void round(inout vec3 orig){\
+   orig.x=sign(orig.x)*floor(abs(orig.x)+0.5);\
+   orig.y=sign(orig.y)*floor(abs(orig.y)+0.5);\
+   orig.z=sign(orig.z)*floor(abs(orig.z)+0.5);\
+ }\
+\
   float unPackValue(in vec3 bytes){\
        bytes = bytes * vec3(255.0, 255.0, 255.0);\
+       round(bytes);\
        return (bytes.x * 65536.0)  + (bytes.y * 256.0) + bytes.z;\
   }\
 \
@@ -426,11 +434,16 @@ var fragmentShaderString = "varying vec2 vTextureCoord;\
       int totalBytes = 3;\
       float radixMax = 0.0;\
       int place = 0;\
-      for(int i = totalBytes; i > 0; --i){\
+      for(int i = 3; i > 0; --i){\
 	radixMax = pow(256.0, float(i - 1));\
-        place = (totalBytes - i);\
+        place = (3 - i);\
 	if(value >= radixMax){\
-          ret[place] = floor(value / radixMax);\
+          if (place == 2)\
+            ret[2] = floor(value / radixMax);\
+          else if (place == 1)\
+            ret[1] = floor(value / radixMax);\
+          else if (place == 0)\
+            ret[0] = floor(value / radixMax);\
           value = mod(value, radixMax);\
 	}\
       }\
@@ -446,8 +459,10 @@ var fragmentShaderString = "varying vec2 vTextureCoord;\
 \
     vec3 outputVec = vec3(0.0, 0.0, 0.0);\
 \
-    float resultValue = 0.0;\
-    for(float i = 0.0; i < float(canvasWidth); ++i){\
+float resultValue = 0.0;\
+    for(float i = 0.0; i < 2000.00; ++i){\
+        if(!(i < float(canvasWidth)))\
+          break;\
     	float valueOne = 0.0;\
     	valueOne = unPackValue(texture2D(src, vec2( (i * pixelWidth), vTextureCoord.t)).xyz);\
     	float valueTwo = 0.0;\
@@ -455,11 +470,15 @@ var fragmentShaderString = "varying vec2 vTextureCoord;\
 	resultValue += valueOne *  valueTwo;\
     }\
     outputVec.xyz = packValue(resultValue);\
-    gl_FragColor = vec4(outputVec,  1.0);\
+    gl_FragColor = vec4(outputVec,  1.0);		\
 \
   }\n";
 
-  var vertexShaderString = "attribute vec3 aVertexPosition;\
+  var vertexShaderString = "\
+#ifdef GL_ESn\
+precision highp float;\n\
+#endif\n\
+attribute vec3 aVertexPosition;\
   attribute vec2 aTextureCoord;\
   varying vec2 vTextureCoord;\
   void main(void)\
@@ -649,10 +668,13 @@ Matrix.prototype = {
     Matrix.gl.bindBuffer(Matrix.gl.ELEMENT_ARRAY_BUFFER, Matrix.BUFFERS.cubeVertexIndexBuffer);
     Matrix.gl.drawElements(Matrix.gl.TRIANGLES, Matrix.BUFFERS.cubeVertexIndexBuffer.numItems, Matrix.gl.UNSIGNED_SHORT, 0);
 
+
+
     Matrix.gl.bindBuffer(Matrix.gl.ELEMENT_ARRAY_BUFFER, null);
     Matrix.gl.bindTexture(Matrix.gl.TEXTURE_2D, null);
     Matrix.gl.bindBuffer(Matrix.gl.ARRAY_BUFFER, null);
     Matrix.gl.bindFramebuffer(Matrix.gl.FRAMEBUFFER, null);
+
   },
 
   createTexture: function(canvasWidth, canvasHeight, elements, bytesPerValue){
@@ -702,9 +724,8 @@ Matrix.prototype = {
   },
   createTextureFromCanvas: function(canvas){
     var texture = Matrix.gl.createTexture();
-    Matrix.gl.enable(Matrix.gl.TEXTURE_2D);
     Matrix.gl.bindTexture(Matrix.gl.TEXTURE_2D, texture);
-    Matrix.gl.texImage2D(Matrix.gl.TEXTURE_2D, 0, canvas);
+    Matrix.gl.texImage2D(Matrix.gl.TEXTURE_2D, 0, Matrix.gl.RGBA, Matrix.gl.RGBA, Matrix.gl.UNSIGNED_BYTE, canvas);
     Matrix.gl.texParameteri(Matrix.gl.TEXTURE_2D, Matrix.gl.TEXTURE_MAG_FILTER, Matrix.gl.NEAREST);
     Matrix.gl.texParameteri(Matrix.gl.TEXTURE_2D, Matrix.gl.TEXTURE_MIN_FILTER, Matrix.gl.NEAREST);
     Matrix.gl.bindTexture(Matrix.gl.TEXTURE_2D, null);
@@ -714,7 +735,7 @@ Matrix.prototype = {
   createFramebuffer: function (texture, canvasWidth, canvasHeight){
     var globalRenderBufferId = Matrix.gl.createRenderbuffer();
     Matrix.gl.bindRenderbuffer(Matrix.gl.RENDERBUFFER, globalRenderBufferId);
-    Matrix.gl.renderbufferStorage(Matrix.gl.RENDERBUFFER, Matrix.gl.DEPTH_COMPONENT, canvasWidth, canvasHeight);
+    Matrix.gl.renderbufferStorage(Matrix.gl.RENDERBUFFER, Matrix.gl.DEPTH_COMPONENT16, canvasWidth, canvasHeight);
     Matrix.gl.isRenderbuffer(globalRenderBufferId);
     Matrix.gl.bindRenderbuffer(Matrix.gl.RENDERBUFFER, null);
 
@@ -724,6 +745,7 @@ Matrix.prototype = {
     Matrix.gl.framebufferTexture2D( Matrix.gl.FRAMEBUFFER, Matrix.gl.COLOR_ATTACHMENT0, Matrix.gl.TEXTURE_2D, texture, 0);
     Matrix.gl.framebufferRenderbuffer(Matrix.gl.FRAMEBUFFER, Matrix.gl.DEPTH_ATTACHMENT, Matrix.gl.RENDERBUFFER, globalRenderBufferId);
     Matrix.gl.bindFramebuffer( Matrix.gl.FRAMEBUFFER, null);
+
 
     return globalFbo
   },
@@ -789,13 +811,14 @@ Matrix.prototype = {
 
 
 
-    pixels = null;
+    var pixels = new Uint8Array(fbcanvas.width* fbcanvas.height * 4);
     this.calculateFrame(framebuffer, leftMatrix, rightMatrix, fbcanvas.width, fbcanvas.height);
     Matrix.gl.bindFramebuffer( Matrix.gl.FRAMEBUFFER, framebuffer);
-    pixels = Matrix.gl.readPixels(0, 0, fbcanvas.width, fbcanvas.height, Matrix.gl.RGBA, Matrix.gl.UNSIGNED_BYTE);
+    Matrix.gl.readPixels(0, 0, fbcanvas.width, fbcanvas.height, Matrix.gl.RGBA, Matrix.gl.UNSIGNED_BYTE, pixels);
     Matrix.gl.bindFramebuffer( Matrix.gl.FRAMEBUFFER, null);
    
     elements = this.unpackTexture(pixels, fbcanvas.width, fbcanvas.height, 4);
+
 
     var M = Matrix.create(elements);
     return returnVector ? M.col(1) : M;
